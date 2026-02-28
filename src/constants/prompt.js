@@ -1,0 +1,1 @@
+export const Art_PROMPT = "The art is a : title: %s, Artist: %s, Category:%s just replace dont give me any other text and make the description of each in eangaging";

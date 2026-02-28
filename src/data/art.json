@@ -1,0 +1,117 @@
+[
+  {
+    "id": "ill_01",
+    "title": "Neon City",
+    "type": "digital-illustration",
+    "artist": "Aarav Shrestha",
+    "thumbnail": "/images/ill/neon-city.jpg"
+  },
+  {
+    "id": "ill_02",
+    "title": "Cyber Forest",
+    "type": "digital-illustration",
+    "artist": "Maya Gurung",
+    "thumbnail": "/images/ill/cyber-forest.jpg"
+  },
+  {
+    "id": "ill_03",
+    "title": "Sky Temple",
+    "type": "digital-illustration",
+    "artist": "Rinchen Lama",
+    "thumbnail": "/images/ill/sky-temple.jpg"
+  },
+  {
+    "id": "ill_04",
+    "title": "Dreamscape",
+    "type": "digital-illustration",
+    "artist": "Pausan Chaudhary",
+    "thumbnail": "/images/ill/dreamscape.jpg"
+  },
+
+  {
+    "id": "photo_01",
+    "title": "Himalayan Sunrise",
+    "type": "photography",
+    "artist": "Sita Yadav",
+    "thumbnail": "/images/photo/himalayan-sunrise.jpg"
+  },
+  {
+    "id": "photo_02",
+    "title": "City Night Walk",
+    "type": "photography",
+    "artist": "Urban Flux",
+    "thumbnail": "/images/photo/city-night.jpg"
+  },
+  {
+    "id": "photo_03",
+    "title": "Street Stories",
+    "type": "photography",
+    "artist": "Bibek Thapa",
+    "thumbnail": "/images/photo/street-stories.jpg"
+  },
+  {
+    "id": "photo_04",
+    "title": "Mountain Mirror",
+    "type": "photography",
+    "artist": "Anisha Manandhar",
+    "thumbnail": "/images/photo/mountain-mirror.jpg"
+  },
+
+  {
+    "id": "3d_01",
+    "title": "Glass Orb",
+    "type": "3d-art",
+    "artist": "Karan Karki",
+    "thumbnail": "/images/3d/glass-orb.jpg"
+  },
+  {
+    "id": "3d_02",
+    "title": "Sci-Fi Corridor",
+    "type": "3d-art",
+    "artist": "Rinchen Lama",
+    "thumbnail": "/images/3d/scifi-corridor.jpg"
+  },
+  {
+    "id": "3d_03",
+    "title": "Stone Golem",
+    "type": "3d-art",
+    "artist": "Aarav Shrestha",
+    "thumbnail": "/images/3d/stone-golem.jpg"
+  },
+  {
+    "id": "3d_04",
+    "title": "Crystal Room",
+    "type": "3d-art",
+    "artist": "Pausan Chaudhary",
+    "thumbnail": "/images/3d/crystal-room.jpg"
+  },
+
+  {
+    "id": "paint_01",
+    "title": "Golden Fields",
+    "type": "painting",
+    "artist": "Sita Yadav",
+    "thumbnail": "/images/paint/golden-fields.jpg"
+  },
+  {
+    "id": "paint_02",
+    "title": "River Calm",
+    "type": "painting",
+    "artist": "Nirajan KC",
+    "thumbnail": "/images/paint/river-calm.jpg"
+  },
+  {
+    "id": "paint_03",
+    "title": "Silent Night",
+    "type": "painting",
+    "artist": "Sonam Sherpa",
+    "thumbnail": "/images/paint/silent-night.jpg"
+  },
+  {
+    "id": "paint_04",
+    "title": "Blossom Wind",
+    "type": "painting",
+    "artist": "Asmita Rai",
+    "thumbnail": "/images/paint/blossom-wind.jpg"
+  }
+]
