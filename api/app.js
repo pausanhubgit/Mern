@@ -13,7 +13,11 @@ import { connectCloudinary } from "../src/config/cloudinary.js";
 
 const app = express();
 
-connectCloudinary();
+try {
+  connectCloudinary();
+} catch (err) {
+  console.error('Cloudinary init error:', err.message);
+}
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -36,6 +40,11 @@ app.use("/order", orderRoute);
 
 /* VERCEL HANDLER */
 export default async function handler(req, res) {
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
+  } catch (dbErr) {
+    console.error('Database init failed:', dbErr.message);
+    return res.status(500).json({ message: 'Database connection error' });
+  }
   return app(req, res);
 }
