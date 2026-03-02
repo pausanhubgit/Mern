@@ -1,10 +1,3 @@
-const app = express();
-connectCloudinary();
-
-
-// connect before doing anything else; let errors bubble
-await connectToDatabase();
-
 import express from 'express';
 import config from '../src/config/index.js';
 import artRoute from '../src/routes/artRoute.js';
@@ -17,6 +10,20 @@ import auth from '../src/middlewares/auth.js';
 import orderRoute from '../src/routes/orderRoute.js';
 import multer from 'multer';
 import { connectCloudinary } from '../src/config/cloudinary.js';
+
+const app = express();
+
+// Initialize async setup
+(async () => {
+  try {
+    connectCloudinary();
+    await connectToDatabase();
+    console.log('✓ Database connected successfully');
+  } catch (error) {
+    console.error('✗ Initialization error:', error.message);
+    process.exit(1);
+  }
+})();
 
 
 
