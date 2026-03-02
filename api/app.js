@@ -1,3 +1,10 @@
+const app = express();
+connectCloudinary();
+
+
+// connect before doing anything else; let errors bubble
+await connectToDatabase();
+
 import express from 'express';
 import config from '../src/config/index.js';
 import artRoute from '../src/routes/artRoute.js';
@@ -7,8 +14,6 @@ import authRoute from '../src/routes/authRoute.js';
 import connectToDatabase from '../src/config/database.js';
 import logger from '../src/middlewares/logger.js';
 import auth from '../src/middlewares/auth.js';
-import roleBasedAuth from '../src/middlewares/roleBasedAuth.js';
-import { Admin } from '../src/constants/roles.js';
 import orderRoute from '../src/routes/orderRoute.js';
 import multer from 'multer';
 import { connectCloudinary } from '../src/config/cloudinary.js';
@@ -22,12 +27,7 @@ import { connectCloudinary } from '../src/config/cloudinary.js';
 
 
 
-const app = express();
-connectCloudinary();
 
-
-// connect before doing anything else; let errors bubble
-await connectToDatabase();
 
 const upload = multer({ storage: multer.memoryStorage() });
 app.use(bodyParser.json());
@@ -53,6 +53,8 @@ app.use('/api/auth', authRoute);
 app.use('/art',  upload.array('image', 5),  artRoute);
 app.use("/user",auth,upload.single('image'), userRoute);
 app.use('/order', orderRoute);
+
+
 
 
 
