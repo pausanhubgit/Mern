@@ -25,7 +25,10 @@ import { connectCloudinary } from '../src/config/cloudinary.js';
 const app = express();
 connectCloudinary();
 
-connectToDatabase();
+
+// connect before doing anything else; let errors bubble
+await connectToDatabase();
+
 const upload = multer({ storage: multer.memoryStorage() });
 app.use(bodyParser.json());
 
