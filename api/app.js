@@ -80,6 +80,14 @@ app.use('/art', ensureDbConnected, upload.array('image', 5), artRoute);
 app.use("/user", ensureDbConnected, auth, upload.single('image'), userRoute);
 app.use('/order', ensureDbConnected, orderRoute);
 
+// global error handler (must be after all routes)
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(err.statusCode || 500).json({
+    message: err.message || 'Something went wrong',
+  });
+});
+
 
 
 

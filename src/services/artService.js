@@ -132,11 +132,11 @@ const updateArt = async (id, data, files, user) => {
 
 const deleteArt = async (id,user) => {
    const art = await getArtById(id);
-  if(art.createdBy !== user.id && !req.user.roles.includes("Admin")){
+  if (art.createdBy !== user.id && !(user.roles || []).includes("Admin")) {
     throw {
-       statusCode: 403,
-       message: "Unauthorized to delete this art",
-    }
+      statusCode: 403,
+      message: "Unauthorized to delete this art",
+    };
   }
  await Art.findByIdAndDelete(id);
 
