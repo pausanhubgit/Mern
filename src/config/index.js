@@ -1,7 +1,8 @@
 import dotenv from 'dotenv';
+import path from 'path';
 
-
-dotenv.config();
+// guard against running from api/ or other subfolder
+dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
 
 const mainConfig = {

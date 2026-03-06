@@ -3,6 +3,8 @@ import UserModel from '../models/UserModel.js';
 import uploadFile from '../utils/file.js';
 import promptGemini from '../utils/gemini.js';
 import { Art_PROMPT } from '../constants/prompt.js';
+import mongoose from 'mongoose';
+import connectToDatabase from '../config/database.js';
 
 const createArt = async(data, files, createdBy) => {
 // const createArt = async (data, files, createdBy) => {
@@ -22,7 +24,13 @@ const description = data.description??(await promptGemini(promptMessage));
 
 //   return promptMessage;
 };
+
 const getarts = async(query) => {
+   // ensure we have a live connection before querying
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
+
    const limit = query.limit || 10;
    const offset = query.offset || 0;
    const sort = JSON.parse(query.sort || '{}');
