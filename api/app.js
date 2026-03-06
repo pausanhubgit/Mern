@@ -14,18 +14,53 @@ import multer from 'multer';
 import { connectCloudinary } from '../src/config/cloudinary.js';
 
 const app = express();
-connectCloudinary();
 
-
-// connect before doing anything else; let errors bubble
-await connectToDatabase();
+// Initialize Cloudinary
+try {
+  connectCloudinary();
+} catch (error) {
+  console.error('Cloudinary initialization failed:', error.message);
+}
 
 const upload = multer({ storage: multer.memoryStorage() });
 app.use(bodyParser.json());
-
 app.use(logger);
 
+// Initialize database with timeout and error handling
+let dbConnected = false;
+const initializeDatabase = async () => {
+  if (dbConnected) return;
+  try {
+    await Promise.race([
+      connectToDatabase(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database connection timeout')), 30000)
+      )
+    ]);
+    dbConnected = true;
+  } catch (error) {
+    console.error('Database connection error:', error.message);
+    dbConnected = false;
+  }
+};
 
+// Attempt to connect on startup but don't block
+initializeDatabase().catch(err => console.error('Initial DB connection failed:', err.message));
+
+// Middleware to ensure DB connection for protected routes
+const ensureDbConnected = async (req, res, next) => {
+  if (!dbConnected) {
+    try {
+      await initializeDatabase();
+    } catch (error) {
+      return res.status(503).json({ 
+        message: 'Database service unavailable', 
+        status: 'error' 
+      });
+    }
+  }
+  next();
+};
 
 app.get('/',(req,res)=>{
    
@@ -40,10 +75,10 @@ app.get('/',(req,res)=>{
     });
 });
 
-app.use('/api/auth', authRoute);
-app.use('/art',  upload.array('image', 5),  artRoute);
-app.use("/user",auth,upload.single('image'), userRoute);
-app.use('/order', orderRoute);
+app.use('/api/auth', ensureDbConnected, authRoute);
+app.use('/art', ensureDbConnected, upload.array('image', 5), artRoute);
+app.use("/user", ensureDbConnected, auth, upload.single('image'), userRoute);
+app.use('/order', ensureDbConnected, orderRoute);
 
 
 
@@ -67,5 +102,6 @@ app.use('/order', orderRoute);
 // app.listen(config.PORT,()=>{
 //     console.log(`Server is running on port ${config.PORT}`);
 // });
+
 export default app;
 
