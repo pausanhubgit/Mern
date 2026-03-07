@@ -15,7 +15,7 @@ const createArt = async(data, files, createdBy) => {
 const description = data.description??(await promptGemini(promptMessage));
      const createdArt = await Art.create({
       ...data,
-      createdBy,
+      createdBy: createdBy.id,
       imageUrls: uploadedFiles.map((item) => item?.url),
       description,
    });
