@@ -1,18 +1,29 @@
 import UserModel from '../models/UserModel.js';
 import { Admin, Merchant, User } from '../constants/roles.js';
+import mongoose from 'mongoose';
+import connectToDatabase from '../config/database.js';
 
 const getUser = async()=>{
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
     return await UserModel.find();
 };
 
 
 const getUserById = async(id)=>{
-     const user = await UserModel.findById(id);
-     if(!user) throw { statusCode: 404, message: "User not found" };
-     return user;
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
+    const user = await UserModel.findById(id);
+    if(!user) throw { statusCode: 404, message: "User not found" };
+    return user;
 };
 
 const createUser = async(data)=>{
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
     return await UserModel.create(data);
 };
 
@@ -28,6 +39,9 @@ const updateUser = async(id, updateData,authUser)=>{
 
 };
 const createMerchant = async(UserId)=>{
+  if (mongoose.connection.readyState !== 1) {
+    await connectToDatabase();
+  }
   const updateUser = await UserModel.findByIdAndUpdate(
     UserId,
     {
@@ -39,6 +53,9 @@ const createMerchant = async(UserId)=>{
 
 }
 const deleteUser = async(id)=>{
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
     return await UserModel.findByIdAndDelete(id);
 };
 

@@ -4,14 +4,22 @@ import Payment from "../models/Payment.js";
 import paymentUtil from "../utils/payment.js";
 import { ORDER_STATUS_CONFIRMED, ORDER_STATUS_CANCELLED, ORDER_STATUS_PENDING } from "../constants/orderStatus.js";
 import { payment_STATUS_COMPLETED, payment_STATUS_FAILED } from "../constants/paymentStatus.js";
+import mongoose from 'mongoose';
+import connectToDatabase from '../config/database.js';
 
 const getOrders = async () => {
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
     const orders = await Order.find()
         .populate('orderItems.artId')
         .populate("userid", [ "username", "email", "phone", "address"]);
     return orders;
 };
 const getOrderByUser = async (userId) => {
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
     const orders = await Order.find({ userid: userId })
         .populate('orderItems.artId')
         .populate("userid", [ "username", "email", "phone", "address"])
@@ -19,6 +27,9 @@ const getOrderByUser = async (userId) => {
     return orders;
 };
 const getOrderById = async(id)=>{
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
     const order = await Order.findById(id)
     .populate("orderItems.artId")
     .populate("userid",["username","email","phone","address"])
@@ -34,9 +45,11 @@ const getOrderById = async(id)=>{
 };
 
 const createOrder = async (data, userid) => {
- const orderNumber = crypto.randomUUID();
-
-return await Order.create({ ...data, userid:userid, orderNumber });
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
+    const orderNumber = crypto.randomUUID();
+    return await Order.create({ ...data, userid:userid, orderNumber });
 };
 const updateOrder = async (id,data,user)=>{
     const order = await getOrderById(id);
