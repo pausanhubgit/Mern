@@ -34,7 +34,7 @@ app.get('/', (req, res) => {
   });
 });
 
-app.use('/api/auth', authRoute);
+app.use('/api/auths', authRoute);
 app.use('/api/users', auth, roleBasedAuth([Admin]), userRoute);
 app.use('/api/arts', artRoute);
 app.use('/api/orders', auth, orderRoute);

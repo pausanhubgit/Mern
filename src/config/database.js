@@ -8,8 +8,6 @@ try{
     console.log(`MongoDB connected: ${status.connection.host}`);
   } catch (error) {
     console.log(error);
-
-    throw error;
   }
 }
 
