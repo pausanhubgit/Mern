@@ -9,6 +9,9 @@ import mongoose from 'mongoose';
 import connectToDatabase from '../config/database.js';
 
 const register = async(data) =>{
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
     const user = await User.findOne({email: data.email});
     if(user){
         throw new Error("User already exists");
@@ -29,6 +32,9 @@ const register = async(data) =>{
 };
 
 const login = async(data) =>{
+   if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
    const user = await User.findOne({email: data.email});
     if(!user){
         throw new Error("User not found");
@@ -46,6 +52,9 @@ const login = async(data) =>{
 };
 
 const forgetPassword = async (email) =>{
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
     const user = await User.findOne({email: email});
 if(!user)  throw{statusCode:404, message:"User not found"};
 
@@ -77,6 +86,9 @@ if(!user)  throw{statusCode:404, message:"User not found"};
 
 
 const resetPassword = async(userId, token, newPassword) =>{
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
     const data = await ResetPassword.findOne({
         userId: userId,
         token: token,
