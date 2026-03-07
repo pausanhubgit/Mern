@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 const mainConfig = {
     appUrl : process.env.APP_URL || "",
     mongoDBURL : process.env.MONGODB_URL||"",
