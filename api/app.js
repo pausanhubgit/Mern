@@ -10,7 +10,6 @@ import roleBasedAuth from '../src/middlewares/roleBasedAuth.js';
 import { Admin } from '../src/constants/roles.js';
 import orderRoute from '../src/routes/orderRoute.js';
 import multer from 'multer';
-import bodyParser from "body-parser";
 import { connectCloudinary } from '../src/config/cloudinary.js';
 import { version } from 'mongoose';
 
@@ -22,7 +21,7 @@ connectToDatabase();
 connectCloudinary();
 
 app.use(logger);
-app.use(bodyParser.json());
+app.use(express.json());
 
 app.get('/', (req, res) => {
   res.json({
