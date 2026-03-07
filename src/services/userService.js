@@ -47,7 +47,7 @@ const createMerchant = async(UserId)=>{
     },
     {new:true}
   );
-  return updateUser;
+  return updateUser ? updateUser.toObject() : null;
 
 }
 const deleteUser = async(id)=>{
