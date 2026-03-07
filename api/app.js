@@ -12,6 +12,7 @@ import orderRoute from '../src/routes/orderRoute.js';
 import multer from 'multer';
 import { connectCloudinary } from '../src/config/cloudinary.js';
 import { version } from 'mongoose';
+import e from 'express';
 
 // log any unhandled errors so Vercel shows stack traces
 const app = express();
@@ -42,3 +43,5 @@ app.listen(config.PORT, () => {
   console.log(`${config.NAME} is running on port ${config.PORT}`);
     console.log(`App URL: ${config.appUrl}`);
 });
+
+export default app;
