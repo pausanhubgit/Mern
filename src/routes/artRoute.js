@@ -19,7 +19,7 @@ router.get('/:id', artController.getArtById);
 
 router.post(
     '/',
-    upload.array.any('files'),
+    upload.any('files'),
      auth,
     roleBasedAuth(Merchant),
      artController.Createart
