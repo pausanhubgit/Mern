@@ -39,9 +39,21 @@ app.use('/api/users', auth, roleBasedAuth([Admin]), userRoute);
 app.use('/api/arts', artRoute);
 app.use('/api/orders', auth, orderRoute);
 
-app.listen(config.PORT, () => {
-  console.log(`${config.NAME} is running on port ${config.PORT}`);
-    console.log(`App URL: ${config.appUrl}`);
+// Global error handler (must be last)
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(err.statusCode || err.status || 500).json({
+    message: err.message || 'Internal Server Error',
+    status: 'error'
+  });
 });
+
+// Only listen if not on Vercel
+if (!process.env.VERCEL) {
+  app.listen(config.PORT, () => {
+    console.log(`${config.NAME} is running on port ${config.PORT}`);
+    console.log(`App URL: ${config.appUrl}`);
+  });
+}
 
 export default app;
