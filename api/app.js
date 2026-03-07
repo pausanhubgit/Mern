@@ -18,8 +18,8 @@ import e from 'express';
 const app = express();
 
 const upload = multer({storage: multer.memoryStorage()});
-connectToDatabase();
-connectCloudinary();
+connectToDatabase().catch(err => console.error('DB connection error:', err));
+connectCloudinary().catch(err => console.error('Cloudinary error:', err));
 
 app.use(logger);
 app.use(express.json());
