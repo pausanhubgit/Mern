@@ -69,8 +69,8 @@ const updateUser = async (req, res) => {
 };
 
 const createMerchant = async (req, res) => {
-   const userId = req.body.userId;
     try {
+        const userId = req.body.userId;
         if(!userId)
             return res.status(400).json({ message: "User ID is required to create merchant" });
         
