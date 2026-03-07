@@ -34,10 +34,10 @@ app.get('/', (req, res) => {
   });
 });
 
-app.use('/api/auth', authRoute);
-app.use('/api/users', auth, roleBasedAuth([Admin]), userRoute);
-app.use('/api/arts', artRoute);
-app.use('/api/orders', auth, orderRoute);
+app.use('/auth', authRoute);
+app.use('/users', auth, roleBasedAuth([Admin]), userRoute);
+app.use('/arts', artRoute);
+app.use('/orders', auth, orderRoute);
 
 app.listen(config.PORT, () => {
   console.log(`${config.NAME} is running on port ${config.PORT}`);
