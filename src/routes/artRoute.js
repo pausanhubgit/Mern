@@ -14,7 +14,7 @@ const upload = multer({storage: multer.memoryStorage()});
 
 
 
-router.get('/', artController.getArt);
+router.get('/', roleBasedAuth(Admin), artController.getArt);
 router.get('/:id', artController.getArtById);
 
 router.post(

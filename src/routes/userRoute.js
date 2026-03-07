@@ -1,7 +1,7 @@
 import express from 'express';
 import userController from '../controller/userController.js';
 import roleBasedAuth from '../middlewares/roleBasedAuth.js';
-import { Admin } from '../constants/roles.js';
+import { Admin, Merchant } from '../constants/roles.js';
 import auth from '../middlewares/auth.js';
 
 
@@ -14,7 +14,7 @@ router.get('/',auth, roleBasedAuth(Admin), userController.getUser);
  router.put('/:id',auth, roleBasedAuth(Admin), userController.updateUser);
  router.post('/',auth, roleBasedAuth(Admin),   userController.createUser);
  router.delete('/:id',auth, roleBasedAuth(Admin), userController.deleteUser);
- router.patch('/:id/profile-image', auth, roleBasedAuth(Admin),userController.updateProfileImage);
+ router.patch('/:id/profile-image', auth, roleBasedAuth(Merchant),userController.updateProfileImage);
  router.post('/merchant', auth, roleBasedAuth(Admin), userController.createMerchant);
 
 export default router;
