@@ -11,7 +11,7 @@ const auth = async (req, res, next) => {
   } else {
     const cookie = req.headers.cookie;
 
-    if (!cookie) return res.status(401).send("User not authenticated.");
+    if (!cookie) return res.status(401).json({ message: "User not authenticated." });
 
     authToken = cookie.split("=")[1];
   }
@@ -26,7 +26,7 @@ const auth = async (req, res, next) => {
    
     next();
   } catch (error) {
-    res.status(401).send("Invalid auth token.");
+    res.status(401).json({ message: "Invalid auth token." });
   }
 };
 

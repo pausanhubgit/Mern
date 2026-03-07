@@ -1,7 +1,7 @@
 const roleBasedAuth = (role) => {
   return (req, res, next) => {
     if (!req.user || !Array.isArray(req.user.roles)) {
-      return res.status(403).send("Access denied.");
+      return res.status(403).json({ message: "Access denied." });
     }
 
     const userRoles = req.user.roles.map(r => r.toLowerCase());
@@ -10,7 +10,7 @@ const roleBasedAuth = (role) => {
       return next();
     }
 
-    return res.status(403).send("Access denied.");
+    return res.status(403).json({ message: "Access denied." });
   };
 };
 
