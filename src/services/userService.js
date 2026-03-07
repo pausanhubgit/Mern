@@ -2,6 +2,7 @@ import UserModel from '../models/UserModel.js';
 import { Admin, Merchant, User } from '../constants/roles.js';
 import mongoose from 'mongoose';
 import connectToDatabase from '../config/database.js';
+import uploadFile from '../utils/file.js';
 
 const getUser = async()=>{
 const users = await UserModel.find();
@@ -20,13 +21,13 @@ const createUser = async(data)=>await UserModel.create(data);
 const updateUser = async(id, data, authUser)=>{
     const user = await getUserById(id);
 
-  if (user._id != authUser._id && !authUser.roles.includes(Admin)) {
+  if (user._id.toString() !== authUser._id && !authUser.roles.includes(Admin)) {
     throw {
       statusCode: 403,
       message: "Access denied.",
     };
   }
- const updatedUser = await User.findByIdAndUpdate(
+ const updatedUser = await UserModel.findByIdAndUpdate(
     id,
     {
         username: data.username,
@@ -56,12 +57,17 @@ const deleteUser = async(id)=>{
 }
 
 
-const updateUserProfileImage = async(id, file,authUser)=>{
+const updateUserProfileImage = async(id, file, authUser)=>{
     const user = await getUserById(id);
-     if(!user.id != authUser&& !req.user.roles.includes(ADMIN)) throw { statusCode: 404, message: "User not found" };
-    const uploadFiles = await uploadFiles([file]);
-
-    const updatedUser = await UserModel.findByIdAndUpdate(id, {profileImageUrl: uploadFiles[0].url}, {new:true});
+    if (user._id.toString() !== authUser._id && !authUser.roles.includes(Admin)) {
+        throw { statusCode: 403, message: "Access denied." };
+    }
+    if (!file) {
+        throw { statusCode: 400, message: "File is required" };
+    }
+    const results = await uploadFile([file]);
+    const imageUrl = results[0]?.url || "";
+    const updatedUser = await UserModel.findByIdAndUpdate(id, {profileImageUrl: imageUrl}, {new:true});
     return updatedUser;
 }
 //recheck
