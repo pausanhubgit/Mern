@@ -7,6 +7,9 @@ import mongoose from 'mongoose';
 import connectToDatabase from '../config/database.js';
 
 const createArt = async(data, files, createdBy) => {
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
 // const createArt = async (data, files, createdBy) => {
    const uploadedFiles = await uploadFile(files);
 //    const imageUrls = uploadedFiles.map((item) => item?.url);
@@ -15,7 +18,7 @@ const createArt = async(data, files, createdBy) => {
 const description = data.description??(await promptGemini(promptMessage));
      const createdArt = await Art.create({
       ...data,
-      createdBy: createdBy.id,
+      createdBy,
       imageUrls: uploadedFiles.map((item) => item?.url),
       description,
    });
@@ -100,6 +103,9 @@ const getarts = async(query) => {
 // };
 
 const getArtById= async (id) => {
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
 
 const foundArt = await Art.findById(id);
 if (!foundArt) {
@@ -115,6 +121,9 @@ return foundArt;
 
 
 const updateArt = async (id, data, files, user) => {
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
    // resolve user id from param which can be an object or id
    const art = await getArtById(id);
     if(art.createdBy.toString() !== user.id && !user.roles.includes("admin")){
@@ -139,8 +148,11 @@ const updateArt = async (id, data, files, user) => {
 
 
 const deleteArt = async (id,user) => {
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
    const art = await getArtById(id);
-  if (art.createdBy !== user.id && !(user.roles || []).includes("Admin")) {
+  if (art.createdBy.toString() !== user.id && !user.roles.includes("admin")) {
     throw {
       statusCode: 403,
       message: "Unauthorized to delete this art",
