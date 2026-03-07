@@ -9,7 +9,8 @@ async function connectToDatabase() {
     }
 
     if (!mainConfig.mongoDBURL) {
-        throw new Error('MONGODB_URL environment variable is not set');
+        console.error('MONGODB_URL environment variable is not set');
+        return; // Don't throw, just log
     }
 
     // ensure the URL contains the recommended options
