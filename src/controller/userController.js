@@ -1,3 +1,4 @@
+import { use } from "react";
 import userService from "../services/userService.js";
 
 const getUser = async (req, res) => {
@@ -71,13 +72,20 @@ const updateUser = async (req, res) => {
 const createMerchant = async (req, res) => {
    const userId = req.body.userId;
     try {
-        if(!userId)
-            return res.status(400).json({ message: "User ID is required to create merchant" });
-        
-        const data = await userService.createMerchant(userId);
-        res.json(data);
+        const updatedUser = await userService.createMerchant(userId);
+        if (!userId) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.json({
+            message: "Merchant role added successfully",
+            user: updatedUser
+        });
     } catch (error) {
-        res.status(error.statusCode || 500).json({ error: error.message });
+        console.error("Error creating merchant:", error);
+        res.status(500).json({
+            message: "Failed to create merchant",
+            error: error.message
+        });
     }
 };
 
