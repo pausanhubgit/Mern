@@ -18,7 +18,7 @@ const createArt = async(data, files, createdBy) => {
 const description = data.description??(await promptGemini(promptMessage));
      const createdArt = await Art.create({
       ...data,
-      createdBy,
+      createdBy: createdBy._id,
       imageUrls: uploadedFiles.map((item) => item?.url),
       description,
    });
@@ -126,7 +126,7 @@ const updateArt = async (id, data, files, user) => {
    }
    // resolve user id from param which can be an object or id
    const art = await getArtById(id);
-    if(art.createdBy.toString() !== user.id && !user.roles.includes("admin")){
+    if(art.createdBy.toString() !== user._id && !user.roles.includes("admin")){
     throw {
        statusCode: 403,
        message: "Unauthorized to update this art",
@@ -152,7 +152,7 @@ const deleteArt = async (id,user) => {
       await connectToDatabase();
    }
    const art = await getArtById(id);
-  if (art.createdBy.toString() !== user.id && !user.roles.includes("admin")) {
+  if (art.createdBy.toString() !== user._id && !user.roles.includes("admin")) {
     throw {
       statusCode: 403,
       message: "Unauthorized to delete this art",
