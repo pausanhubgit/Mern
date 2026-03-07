@@ -2,8 +2,6 @@ import UserModel from '../models/UserModel.js';
 import { Admin, Merchant, User } from '../constants/roles.js';
 import mongoose from 'mongoose';
 import connectToDatabase from '../config/database.js';
-import mongoose from 'mongoose';
-import connectToDatabase from '../config/database.js';
 
 const getUser = async()=>{
 const users = await UserModel.find();
@@ -22,7 +20,7 @@ const createUser = async(data)=>await UserModel.create(data);
 const updateUser = async(id, data, authUser)=>{
     const user = await getUserById(id);
 
-  if (user._id != authUser._id && !authUser.roles.includes(ADMIN)) {
+  if (user._id != authUser._id && !authUser.roles.includes(Admin)) {
     throw {
       statusCode: 403,
       message: "Access denied.",
