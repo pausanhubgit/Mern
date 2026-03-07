@@ -3,11 +3,14 @@ import artController from '../controller/artController.js';
 import auth from '../middlewares/auth.js';
 import roleBasedAuth from '../middlewares/roleBasedAuth.js';
 import { Merchant } from '../constants/roles.js';
+import multer from 'multer';
 
 
 
 
 const router = express.Router();
+
+const upload = multer({storage: multer.memoryStorage()});
 
 
 
@@ -16,6 +19,7 @@ router.get('/:id', artController.getArtById);
 
 router.post(
     '/',
+    upload.array('files'),
      auth,
     roleBasedAuth(Merchant),
      artController.Createart
