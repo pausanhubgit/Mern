@@ -104,7 +104,8 @@ const deleteUser = async (req, res) => {
 
 const updateProfileImage =async (req,res) =>{
     const id = req.params.id;
-    const file = req.file;
+    // multer.any() stores files in req.files
+    const file = req.file || (req.files && req.files[0]);
 
     try{
         const data = await userService.updateUserProfileImage(id,file,req.user);

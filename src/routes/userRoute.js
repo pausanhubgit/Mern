@@ -17,7 +17,7 @@ router.get('/',auth, roleBasedAuth(Admin), userController.getUser);
  router.put('/:id',auth, roleBasedAuth(Admin), userController.updateUser);
  router.post('/',auth, roleBasedAuth(Admin),   userController.createUser);
  router.delete('/:id',auth, roleBasedAuth(Admin), userController.deleteUser);
- router.patch('/:id/profile-image', upload.single('file'), auth, roleBasedAuth(Merchant), userController.updateProfileImage);
+ router.patch('/:id/profile-image', upload.any(), auth, roleBasedAuth(Merchant), userController.updateProfileImage);
  router.post('/merchant', auth, roleBasedAuth(Admin), userController.createMerchant);
 
 export default router;
