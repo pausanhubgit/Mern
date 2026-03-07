@@ -19,13 +19,13 @@ router.get('/:id', artController.getArtById);
 
 router.post(
     '/',
-    upload.any('files'),
+    upload.any(),
      auth,
     roleBasedAuth(Merchant),
      artController.Createart
     );
 
-router.put('/:id',auth, roleBasedAuth(Merchant), artController.UpdateArt);
+router.put('/:id', upload.any(), auth, roleBasedAuth(Merchant), artController.UpdateArt);
 router.delete('/:id',auth, roleBasedAuth(Merchant), artController.deleteArt);
 
 // router.get('/art/get', artController.getArt);

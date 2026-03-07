@@ -7,18 +7,17 @@ import mongoose from 'mongoose';
 import connectToDatabase from '../config/database.js';
 
 const createArt = async(data, files, createdBy) => {
+   // ensure DB connection
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-// const createArt = async (data, files, createdBy) => {
    const uploadedFiles = await uploadFile(files);
-//    const imageUrls = uploadedFiles.map((item) => item?.url);
- const promptMessage = Art_PROMPT.replace('%s', data.title).replace('%s', data.artist).replace('%s', data.category);
+   const promptMessage = Art_PROMPT.replace('%s', data.title).replace('%s', data.artist).replace('%s', data.category);
 
-const description = data.description??(await promptGemini(promptMessage));
-     const createdArt = await Art.create({
+   const description = data.description ?? (await promptGemini(promptMessage));
+   const createdArt = await Art.create({
       ...data,
-      createdBy,
+      createdBy: createdBy._id,
       imageUrls: uploadedFiles.map((item) => item?.url),
       description,
    });
@@ -102,20 +101,20 @@ const getarts = async(query) => {
     
 // };
 
-const getArtById= async (id) => {
+const getArtById = async (id) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
 
-const foundArt = await Art.findById(id);
-if (!foundArt) {
-   throw{
-      statusCode: 404,
-      message: "Art not found"
-   };
-}
+   const foundArt = await Art.findById(id);
+   if (!foundArt) {
+      throw {
+         statusCode: 404,
+         message: "Art not found",
+      };
+   }
 
-return foundArt; 
+   return foundArt;
 };
 
 
@@ -124,14 +123,13 @@ const updateArt = async (id, data, files, user) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-   // resolve user id from param which can be an object or id
    const art = await getArtById(id);
-    if(art.createdBy.toString() !== user.id && !user.roles.includes("admin")){
-    throw {
-       statusCode: 403,
-       message: "Unauthorized to update this art",
-    }
-  }
+   if (art.createdBy.toString() !== user._id && !user.roles.includes("admin")) {
+      throw {
+         statusCode: 403,
+         message: "Unauthorized to update this art",
+      };
+   }
 
    const updatedData = data;
    if (files && files.length>0) {
@@ -147,19 +145,18 @@ const updateArt = async (id, data, files, user) => {
 };
 
 
-const deleteArt = async (id,user) => {
+const deleteArt = async (id, user) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
    const art = await getArtById(id);
-  if (art.createdBy.toString() !== user.id && !user.roles.includes("admin")) {
-    throw {
-      statusCode: 403,
-      message: "Unauthorized to delete this art",
-    };
-  }
- await Art.findByIdAndDelete(id);
-
+   if (art.createdBy.toString() !== user._id && !user.roles.includes("admin")) {
+      throw {
+         statusCode: 403,
+         message: "Unauthorized to delete this art",
+      };
+   }
+   await Art.findByIdAndDelete(id);
 };
 
 
