@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "functions": [
+  "builds": [
     {
       "src": "api/app.js",
       "use": "@vercel/node"
@@ -10,5 +10,4 @@
     { "src": "/(.*)",
       "dest": "api/app.js" }
   ]
-  
 }
