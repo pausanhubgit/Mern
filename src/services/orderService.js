@@ -8,12 +8,18 @@ import mongoose from 'mongoose';
 import connectToDatabase from '../config/database.js';
 
 const getOrders = async () => {
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
     const orders = await Order.find()
         .populate('orderItems.artId')
         .populate("userid", [ "username", "email", "phone", "address"]);
     return orders;
 };
 const getOrderByUser = async (userId) => {
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
     const orders = await Order.find({ userid: userId })
         .populate('orderItems.artId')
         .populate("userid", [ "username", "email", "phone", "address"])
@@ -21,6 +27,9 @@ const getOrderByUser = async (userId) => {
     return orders;
 };
 const getOrderById = async(id)=>{
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
     const order = await Order.findById(id)
     .populate("orderItems.artId")
     .populate("userid",["username","email","phone","address"])

@@ -2,6 +2,8 @@ import UserModel from '../models/UserModel.js';
 import { Admin, Merchant, User } from '../constants/roles.js';
 import mongoose from 'mongoose';
 import connectToDatabase from '../config/database.js';
+import mongoose from 'mongoose';
+import connectToDatabase from '../config/database.js';
 
 const getUser = async()=>{
 const users = await UserModel.find();
