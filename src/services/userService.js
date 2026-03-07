@@ -5,12 +5,18 @@ import connectToDatabase from '../config/database.js';
 import uploadFile from '../utils/file.js';
 
 const getUser = async()=>{
-const users = await UserModel.find();
-return users;
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
+   const users = await UserModel.find();
+   return users;
 };
 
 
 const getUserById = async(id)=>{
+    if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+    }
     const user = await UserModel.findById(id);
     if(!user) throw { statusCode: 404, message: "User not found" };
     return user;
