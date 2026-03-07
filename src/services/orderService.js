@@ -4,6 +4,8 @@ import Payment from "../models/Payment.js";
 import paymentUtil from "../utils/payment.js";
 import { ORDER_STATUS_CONFIRMED, ORDER_STATUS_CANCELLED, ORDER_STATUS_PENDING } from "../constants/orderStatus.js";
 import { payment_STATUS_COMPLETED, payment_STATUS_FAILED } from "../constants/paymentStatus.js";
+import mongoose from 'mongoose';
+import connectToDatabase from '../config/database.js';
 
 const getOrders = async () => {
     const orders = await Order.find()
@@ -34,9 +36,8 @@ const getOrderById = async(id)=>{
 };
 
 const createOrder = async (data, userid) => {
- const orderNumber = crypto.randomUUID();
-
-return await Order.create({ ...data, userid:userid, orderNumber });
+    const orderNumber = crypto.randomUUID();
+    return await Order.create({ ...data, userid:userid, orderNumber });
 };
 const updateOrder = async (id,data,user)=>{
     const order = await getOrderById(id);

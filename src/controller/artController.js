@@ -1,17 +1,16 @@
 import artService from "../services/artService.js";
 
-const getArt= async(req, res) => {
-  
-   const arts= await artService.getarts(req.query);
-  //console.log(req.headers.cookie);
-//    console.log(req.query);
-    res.status(200).json(arts);
-
-//   res.status(200).jsonsend('Arts Route');
-};
-const getArtById= async(req,res)=>{
+const getArt = async (req, res) => {
   try {
-    const id = req.params.id;  
+    const arts = await artService.getarts(req.query);
+    res.status(200).json(arts);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+};
+const getArtById = async (req, res) => {
+  try {
+    const id = req.params.id;
     const Art = await artService.getArtById(id);
     res.json(Art);
   } catch (error) {
@@ -22,7 +21,7 @@ const getArtById= async(req,res)=>{
 
 
 const Createart = async (req, res) => {
-  try{
+  try {
     const data = await artService.createArt(
       req.body,
       req.files,
@@ -39,24 +38,24 @@ const Createart = async (req, res) => {
 
 
 
-const UpdateArt= async(req,res)=>{
+const UpdateArt = async (req, res) => {
   const id = req.params.id;
-try{
- const data = await artService.updateArt(id, req.body, req.files, req.user);
+  try {
+    const data = await artService.updateArt(id, req.body, req.files, req.user);
     res.json(data);
-} catch (error) {
-    res.status(500).json({ error: error.message });
-}
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
 }
 
-const deleteArt= async(req,res)=>{
+const deleteArt = async (req, res) => {
   const id = req.params.id;
   const user = req.user;
-  try{
-   const data = await artService.deleteArt(id, user);
-    res.json({ message: `Art deleted successfully with id:+ ${id}`, data });
+  try {
+    const data = await artService.deleteArt(id, user);
+    res.json({ message: `Art deleted successfully with id: ${id}`, data });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
-    }
-export default {getArt, getArtById, Createart,  deleteArt,UpdateArt};
+}
+export default { getArt, getArtById, Createart, deleteArt, UpdateArt };

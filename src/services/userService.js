@@ -1,33 +1,45 @@
 import UserModel from '../models/UserModel.js';
 import { Admin, Merchant, User } from '../constants/roles.js';
+import mongoose from 'mongoose';
+import connectToDatabase from '../config/database.js';
 
 const getUser = async()=>{
-    return await UserModel.find();
+const users = await UserModel.find();
+return users;
 };
 
 
 const getUserById = async(id)=>{
-     const user = await UserModel.findById(id);
-     if(!user) throw { statusCode: 404, message: "User not found" };
-     return user;
+    const user = await UserModel.findById(id);
+    if(!user) throw { statusCode: 404, message: "User not found" };
+    return user;
 };
 
-const createUser = async(data)=>{
-    return await UserModel.create(data);
-};
+const createUser = async(data)=>await UserModel.create(data);
 
-
-const updateUser = async(id, updateData,authUser)=>{
+const updateUser = async(id, data, authUser)=>{
     const user = await getUserById(id);
-    if(!user.id != authUser&& !authUser.roles.includes(ADMIN)) throw { statusCode: 404, message: "User not found" };
-    return await UserModel.findByIdAndUpdate(id, {
-        name: updateData.name,
-        phone: updateData.phone,
-        address: updateData.address
-    }, {new:true});
 
+  if (user._id != authUser._id && !authUser.roles.includes(ADMIN)) {
+    throw {
+      statusCode: 403,
+      message: "Access denied.",
+    };
+  }
+ const updatedUser = await User.findByIdAndUpdate(
+    id,
+    {
+        username: data.username,
+        email: data.email,
+    },
+    {new:true}
+ );
+
+ return updatedUser;
 };
+
 const createMerchant = async(UserId)=>{
+
   const updateUser = await UserModel.findByIdAndUpdate(
     UserId,
     {
@@ -39,8 +51,10 @@ const createMerchant = async(UserId)=>{
 
 }
 const deleteUser = async(id)=>{
+    const user = await getUserById(id);
     return await UserModel.findByIdAndDelete(id);
-};
+}
+
 
 const updateUserProfileImage = async(id, file,authUser)=>{
     const user = await getUserById(id);

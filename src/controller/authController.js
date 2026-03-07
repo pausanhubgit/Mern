@@ -23,7 +23,7 @@ const register = async (req, res) => {
 
         res.status(201).json({data, message: "User registered successfully"});
     } catch(error){
-      res.status(error.statuscode || 500).json({message: error.message});
+      res.status(error.statusCode || 500).json({message: error.message});
 }
 }
 
@@ -54,7 +54,7 @@ try{
  res.status(200).json(data);
 
 } catch(error){
-    res.status(error.statuscode || 500).json({message: error.message});
+    res.status(error.statusCode || 500).json({message: error.message});
 }
 };
 const forgetPassword = async (req, res) => {
@@ -67,7 +67,7 @@ try{
     const data = await authService.forgetPassword(input.email);
     res.json(data);
 }catch(error){
-    res.status(error.statuscode || 500).json({message: error.message});
+    res.status(error.statusCode || 500).json({message: error.message});
 }   
 };
 const resetPassword = async (req, res) => {
@@ -89,7 +89,7 @@ const resetPassword = async (req, res) => {
         const data = await authService.resetPassword(userId, Token, input.password);
         res.json(data);
     }catch(error){
-        res.status(error.statuscode || 500).json({message: error.message});
+        res.status(error.statusCode || 500).json({message: error.message});
     }
 };
 
