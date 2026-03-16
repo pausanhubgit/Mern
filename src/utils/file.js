@@ -6,20 +6,12 @@ async function uploadFile(files) {
 
     for (const file of files) {
         const mime = file.mimetype?.toLowerCase() || "";
-        const resourceType = mime.startsWith("image/")
-            ? "image"
-            : mime.startsWith("video/") || mime.startsWith("audio/") || mime.includes("mp4")
-            ? "video"
-            : "raw"; // raw allows arbitrary binary data when type is unknown
-
-        console.log(`uploadFile: field=${file.fieldname} mime=${mime} size=${file.size} resource_type=${resourceType}`);
-
         const result = await new Promise((resolve, reject) => {
             cloudinary.uploader
                 .upload_stream(
                     {
                         folder: CLOUDINARY_FOLDER,
-                        resource_type: resourceType,
+                        resource_type: "auto",
                     },
                     (error, data) => {
                         if (error) return reject(error);

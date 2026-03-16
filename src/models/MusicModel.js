@@ -5,7 +5,7 @@ const MusicSchema = new mongoose.Schema({
     artist: String,
     description: String,
     price: Number,
-    category: String,required: [true, "category is required"],
+    category: { type: String, required: [true, "category is required"] },
     subcategory: String, // genre
     brand: String,
     stock: Number,
