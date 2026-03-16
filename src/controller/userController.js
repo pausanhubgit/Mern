@@ -116,6 +116,16 @@ const updateProfileImage =async (req,res) =>{
     }
 }
 
-export default {createUser, getUserById,getUser, updateUser,createMerchant, deleteUser, updateProfileImage};
+const getUserDashboard = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const dashboard = await userService.getUserDashboard(id, req.user);
+        res.json(dashboard);
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ error: error.message });
+    }
+};
+
+export default {createUser, getUserById,getUser, updateUser,createMerchant, deleteUser, updateProfileImage, getUserDashboard};
 
 // export default {createUser, getUserById};

@@ -1,17 +1,18 @@
 import mongoose from 'mongoose';
 
-const ArtSchema = new mongoose.Schema({
+const MusicSchema = new mongoose.Schema({
     title: String,
     artist: String,
     description: String,
     price: Number,
-    category: String,
-     brand: String,
-     stock: Number,
+    category: String,required: [true, "category is required"],
+    subcategory: String, // genre
+    brand: String,
+    stock: Number,
     type: String,
     
     createdAt: { type: Date, default: Date.now() },
-    imageUrls:{
+    audioUrls:{
         type: [String],
     },
     
@@ -24,6 +25,6 @@ const ArtSchema = new mongoose.Schema({
     views: { type: Number, default: 0 },
 });
 
-const artModel = mongoose.model('Art', ArtSchema);
+const musicModel = mongoose.model('Music', MusicSchema);
 
-export default artModel;
+export default musicModel;

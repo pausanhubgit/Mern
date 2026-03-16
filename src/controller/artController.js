@@ -58,4 +58,23 @@ const deleteArt= async(req,res)=>{
     res.status(error.statusCode || 500).json({ error: error.message });
   }
 }
-export default {getArt, getArtById, Createart,  deleteArt,UpdateArt};
+const reactToArt = async(req,res)=>{
+  const id = req.params.id;
+  try{
+    const data = await artService.reactToArt(id, req.user);
+    res.json(data);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+};
+
+const viewArt = async(req,res)=>{
+  const id = req.params.id;
+  try{
+    const data = await artService.viewArt(id);
+    res.json(data);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+};
+export default {getArt, getArtById, Createart,  deleteArt,UpdateArt, reactToArt, viewArt};

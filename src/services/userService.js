@@ -76,6 +76,30 @@ const updateUserProfileImage = async(id, file, authUser)=>{
     const updatedUser = await UserModel.findByIdAndUpdate(id, {profileImageUrl: imageUrl}, {new:true});
     return updatedUser;
 }
-//recheck
-export default {getUserById, deleteUser,getUser,createUser, updateUser, createMerchant, updateUserProfileImage};
+
+const getUserDashboard = async(id, authUser)=>{
+    const user = await getUserById(id);
+    if (user._id.toString() !== authUser._id && !authUser.roles.includes(Admin)) {
+        throw { statusCode: 403, message: "Access denied." };
+    }
+    // Calculate badges based on counts
+    const badges = [];
+    if (user.totalArts > 0) badges.push("Artist");
+    if (user.totalMusics > 0) badges.push("Musician");
+    if (user.totalVideos > 0) badges.push("Videographer");
+    if (user.totalReactions > 10) badges.push("Popular");
+    if (user.totalReactions > 100) badges.push("Superstar");
+
+    // Update badges in DB
+    await UserModel.findByIdAndUpdate(id, { badges });
+
+    return {
+        totalArts: user.totalArts,
+        totalMusics: user.totalMusics,
+        totalVideos: user.totalVideos,
+        totalReactions: user.totalReactions,
+        badges
+    };
+}
+export default {getUserById, deleteUser,getUser,createUser, updateUser, createMerchant, updateUserProfileImage, getUserDashboard};
 

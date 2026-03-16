@@ -1,17 +1,18 @@
 import mongoose from 'mongoose';
 
-const ArtSchema = new mongoose.Schema({
+const VideoSchema = new mongoose.Schema({
     title: String,
     artist: String,
     description: String,
     price: Number,
     category: String,
-     brand: String,
-     stock: Number,
+    subcategory: String, // type like movie, documentary
+    brand: String,
+    stock: Number,
     type: String,
     
     createdAt: { type: Date, default: Date.now() },
-    imageUrls:{
+    videoUrls:{
         type: [String],
     },
     
@@ -24,6 +25,6 @@ const ArtSchema = new mongoose.Schema({
     views: { type: Number, default: 0 },
 });
 
-const artModel = mongoose.model('Art', ArtSchema);
+const videoModel = mongoose.model('Video', VideoSchema);
 
-export default artModel;
+export default videoModel;

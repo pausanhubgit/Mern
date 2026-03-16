@@ -27,6 +27,8 @@ router.post(
 
 router.put('/:id', upload.any(), auth, roleBasedAuth(Merchant), artController.UpdateArt);
 router.delete('/:id',auth, roleBasedAuth(Merchant), artController.deleteArt);
+router.post('/:id/react', auth, artController.reactToArt);
+router.post('/:id/view', artController.viewArt);
 
 // router.get('/art/get', artController.getArt);
 

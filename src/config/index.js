@@ -3,11 +3,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const mainConfig = {
-    appUrl : process.env.APP_URL || "",
+    PORT: process.env.PORT || 5000,
+    appUrl : process.env.APP_URL || `http://localhost:${process.env.PORT || 5000}`,
     mongoDBURL : process.env.MONGODB_URL||"",
     NAME: process.env.NAME || "Default App Name",
     VERSION: process.env.version || "0.0.0",
-    PORT: process.env.PORT || 5000,
     Feature_toggle_enabletestFeature: parseInt(process.env.Feature_toggle_enabletestFeature) || 0,
     jwtSecret: process.env.JWT_SECRET ||"",
     cloudinay:{

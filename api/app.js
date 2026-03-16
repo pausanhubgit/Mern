@@ -3,6 +3,8 @@ import config from '../src/config/index.js';
 import artRoute from '../src/routes/artRoute.js';
 import userRoute from '../src/routes/userRoute.js';
 import authRoute from '../src/routes/authRoute.js';
+import musicRoute from '../src/routes/musicRoute.js';
+import videoRoute from '../src/routes/videoRoute.js';
 import connectToDatabase from '../src/config/database.js';
 import logger from '../src/middlewares/logger.js';
 import auth from '../src/middlewares/auth.js';
@@ -27,7 +29,7 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.json({
     message: `Welcome to ${config.NAME} API!`,
-    appUrl: config.URL,
+    appUrl: config.appUrl,
     version: config.VERSION,
     status: "Running",
     version: version,
@@ -37,6 +39,8 @@ app.get('/', (req, res) => {
 app.use('/api/auths', authRoute);
 app.use('/api/users', auth, userRoute);
 app.use('/api/arts', artRoute);
+app.use('/api/musics', musicRoute);
+app.use('/api/videos', videoRoute);
 app.use('/api/orders', auth, orderRoute);
 
 // Global error handler (must be last)

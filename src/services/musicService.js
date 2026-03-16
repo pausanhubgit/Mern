@@ -1,4 +1,4 @@
-import Art from '../models/ArtModel.js';
+import Music from '../models/MusicModel.js';
 import UserModel from '../models/UserModel.js';
 import uploadFile from '../utils/file.js';
 import promptGemini from '../utils/gemini.js';
@@ -6,7 +6,8 @@ import { Art_PROMPT } from '../constants/prompt.js';
 import mongoose from 'mongoose';
 import connectToDatabase from '../config/database.js';
 
-const createArt = async(data, files, createdBy) => {
+const createMusic = async(data, files, createdBy) => {
+   // ensure DB connection
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
@@ -14,19 +15,21 @@ const createArt = async(data, files, createdBy) => {
    const promptMessage = Art_PROMPT.replace('%s', data.title).replace('%s', data.artist).replace('%s', data.category);
 
    const description = data.description ?? (await promptGemini(promptMessage));
-   const createdArt = await Art.create({
+   const createdMusic = await Music.create({
       ...data,
       createdBy: createdBy._id,
-      imageUrls: uploadedFiles.map((item) => item?.url),
+      audioUrls: uploadedFiles.map((item) => item?.url),
       description,
    });
 
-   await UserModel.findByIdAndUpdate(createdBy._id, { $inc: { totalArts: 1 } });
+   // Increment user's totalMusics
+   await UserModel.findByIdAndUpdate(createdBy._id, { $inc: { totalMusics: 1 } });
 
-   return createdArt;
+   return createdMusic;
 };
 
-const getarts = async(query) => {
+const getMusics = async(query) => {
+   // ensure we have a live connection before querying
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
@@ -36,6 +39,7 @@ const getarts = async(query) => {
    const sort = JSON.parse(query.sort || '{}');
    const brand = query.brand;
    const category = query.category;
+   const subcategory = query.subcategory;
    const min = query.min;
    const max = query.max;
    const name = query.name;
@@ -43,99 +47,102 @@ const getarts = async(query) => {
 
    const Filter = {};
 
-   if(name){
+    if(name){
       Filter.title = { $regex: name, $options: 'i' };
    }
    if (min) {
       Filter.price = { $gte: min };
    }
    if(max){
-      Filter.price = { ...Filter.price, $lte: max };
+   Filter.price = { ...Filter.price, $lte: max };
    }
    if (brand){
       const branditems = brand.split(',');
       Filter.brand = { $in: branditems };
    }
    if (category) Filter.category = category;
+   if (subcategory) Filter.subcategory = subcategory;
    if(createdBy) Filter.createdBy = createdBy;
-   const arts = await Art.find(Filter)
+   const musics = await Music.find(Filter)
    .sort(sort)
    .limit(limit)
    .skip(offset);
-   return arts;
+   return musics;
 };
 
-const getArtById = async (id) => {
+const getMusicById = async (id) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
 
-   const foundArt = await Art.findById(id);
-   if (!foundArt) {
+   const foundMusic = await Music.findById(id);
+   if (!foundMusic) {
       throw {
          statusCode: 404,
-         message: "Art not found",
+         message: "Music not found",
       };
    }
 
-   return foundArt;
+   return foundMusic;
 };
 
-const updateArt = async (id, data, files, user) => {
+const updateMusic = async (id, data, files, user) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-   const art = await getArtById(id);
-   if (art.createdBy.toString() !== user._id && !user.roles.includes("admin")) {
+   const music = await getMusicById(id);
+   if (music.createdBy.toString() !== user._id && !user.roles.includes("admin")) {
       throw {
          statusCode: 403,
-         message: "Unauthorized to update this art",
+         message: "Unauthorized to update this music",
       };
    }
 
    const updatedData = data;
    if (files && files.length>0) {
       const uploadedFiles = await uploadFile(files);
-      updatedData.imageUrls = uploadedFiles.map((item) => item?.url);
+      updatedData.audioUrls = uploadedFiles.map((item) => item?.url);
    }
 
-   const updatedArt = await Art.findByIdAndUpdate(id, updatedData, {
+   const updatedMusic = await Music.findByIdAndUpdate(id, updatedData, {
       new: true,
    });
-   return updatedArt;
+   return updatedMusic;
 };
 
-const deleteArt = async (id, user) => {
+const deleteMusic = async (id, user) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-   const art = await getArtById(id);
-   if (art.createdBy.toString() !== user._id && !user.roles.includes("admin")) {
+   const music = await getMusicById(id);
+   if (music.createdBy.toString() !== user._id && !user.roles.includes("admin")) {
       throw {
          statusCode: 403,
-         message: "Unauthorized to delete this art",
+         message: "Unauthorized to delete this music",
       };
    }
-   await Art.findByIdAndDelete(id);
-   await UserModel.findByIdAndUpdate(user._id, { $inc: { totalArts: -1 } });
+   await Music.findByIdAndDelete(id);
+   // Decrement user's totalMusics
+   await UserModel.findByIdAndUpdate(user._id, { $inc: { totalMusics: -1 } });
 };
 
-const reactToArt = async (id, user) => {
+const reactToMusic = async (id, user) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-   const art = await getArtById(id);
-   await Art.findByIdAndUpdate(id, { $inc: { reactions: 1 } });
-   await UserModel.findByIdAndUpdate(art.createdBy, { $inc: { totalReactions: 1 } });
+   const music = await getMusicById(id);
+   await Music.findByIdAndUpdate(id, { $inc: { reactions: 1 } });
+   // Increment user's totalReactions
+   await UserModel.findByIdAndUpdate(music.createdBy, { $inc: { totalReactions: 1 } });
    return { message: "Reaction added" };
 };
 
-const viewArt = async (id) => {
+const viewMusic = async (id) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-   await Art.findByIdAndUpdate(id, { $inc: { views: 1 } });
+   await Music.findByIdAndUpdate(id, { $inc: { views: 1 } });
    return { message: "View counted" };
 };
 
-export default {getarts,getArtById,createArt,updateArt,deleteArt, reactToArt, viewArt};
+export default {getMusics, getMusicById, createMusic, updateMusic, deleteMusic, reactToMusic, viewMusic};

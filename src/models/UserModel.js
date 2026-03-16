@@ -14,7 +14,11 @@ const UserSchema = new mongoose.Schema({
     profileImageUrl: { type: String },
     createdAt: { type: Date, default: Date.now, immutable: true },
     roles: { type: [String], default: [User] , enum: [User, Admin, Merchant]},
-
+    badges: { type: [String], default: [] },
+    totalArts: { type: Number, default: 0 },
+    totalMusics: { type: Number, default: 0 },
+    totalVideos: { type: Number, default: 0 },
+    totalReactions: { type: Number, default: 0 },
 });
 const UserModel = mongoose.model("User", UserSchema);
 export default UserModel; 
