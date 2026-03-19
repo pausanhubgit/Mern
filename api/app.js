@@ -14,7 +14,7 @@ import orderRoute from '../src/routes/orderRoute.js';
 import multer from 'multer';
 import { connectCloudinary } from '../src/config/cloudinary.js';
 import { version } from 'mongoose';
-import e from 'express';
+import cors from 'cors';
 
 // log any unhandled errors so Vercel shows stack traces
 const app = express();
@@ -22,9 +22,14 @@ const app = express();
 const upload = multer({storage: multer.memoryStorage()});
 connectToDatabase().catch(err => console.error('DB connection error:', err));
 connectCloudinary().catch(err => console.error('Cloudinary error:', err));
+app.use(cors(
+  // cors[{
+  //   origin: config.appUrl,
+  // }]
+));
 
 app.use(logger);
-app.use(express.json());
+app.use(express.json({ strict: false }));
 
 app.get('/', (req, res) => {
   res.json({

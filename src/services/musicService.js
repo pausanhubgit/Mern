@@ -36,7 +36,12 @@ const getMusics = async(query) => {
 
    const limit = query.limit || 10;
    const offset = query.offset || 0;
-   const sort = JSON.parse(query.sort || '{}');
+   let sort = {};
+   try {
+       sort = JSON.parse(query.sort || '{}');
+   } catch (e) {
+       sort = {};
+   }
    const brand = query.brand;
    const category = query.category;
    const subcategory = query.subcategory;
