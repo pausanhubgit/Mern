@@ -26,9 +26,17 @@ const upload = multer({storage: multer.memoryStorage()});
 connectToDatabase().catch(err => console.error('DB connection error:', err));
 connectCloudinary().catch(err => console.error('Cloudinary error:', err));
 app.use(cors({
-  origin: ["http://localhost:3000", config.appUrl],
+  origin: [
+    'https://aether-one-alpha.vercel.app', // deployed frontend
+    'http://localhost:3000',               // local dev
+  ],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Handle preflight OPTIONS requests explicitly
+app.options('*', cors());
 
 app.use(logger);
 app.use(express.json({ strict: false }));
