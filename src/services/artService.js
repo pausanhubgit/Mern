@@ -66,7 +66,8 @@ const getarts = async(query) => {
    const arts = await Art.find(Filter)
    .sort(sort)
    .limit(limit)
-   .skip(offset);
+   .skip(offset)
+   .populate('createdBy', 'username name profileImageUrl');
    return arts;
 };
 
@@ -75,7 +76,7 @@ const getArtById = async (id) => {
       await connectToDatabase();
    }
 
-   const foundArt = await Art.findById(id);
+   const foundArt = await Art.findById(id).populate('createdBy', 'username name profileImageUrl');
    if (!foundArt) {
       throw {
          statusCode: 404,
@@ -139,8 +140,65 @@ const viewArt = async (id) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-   await Art.findByIdAndUpdate(id, { $inc: { views: 1 } });
-   return { message: "View counted" };
+    await Art.findByIdAndUpdate(id, { $inc: { views: 1 } });
+    
+    // 40% of $0.10 view revenue to Admin
+    await UserModel.findOneAndUpdate({ roles: "Admin" }, { $inc: { revenue: 0.04 } });
+    
+    return { message: "View counted" };
 };
 
-export default {getarts,getArtById,createArt,updateArt,deleteArt, reactToArt, viewArt};
+const countarts = async(query) => {
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
+   const Filter = {};
+   if(query.name) Filter.title = { $regex: query.name, $options: 'i' };
+   if(query.createdBy) Filter.createdBy = query.createdBy;
+   if(query.category) Filter.category = query.category;
+   
+   return await Art.countDocuments(Filter);
+};
+
+const addComment = async (id, userId, username, text) => {
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
+   const art = await Art.findByIdAndUpdate(
+      id,
+      { $push: { comments: { userId, username, text } } },
+      { new: true }
+   );
+   return art;
+};
+
+const deleteComment = async (id, commentId, userId) => {
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
+   const art = await Art.findById(id);
+   const comment = art.comments.id(commentId);
+   if (!comment) throw { statusCode: 404, message: "Comment not found" };
+   if (comment.userId.toString() !== userId) {
+      throw { statusCode: 403, message: "Unauthorized to delete this comment" };
+   }
+   art.comments.pull(commentId);
+   await art.save();
+   return art;
+};
+
+const getCategories = async () => {
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
+   return await Art.distinct("category");
+};
+
+const getBrands = async () => {
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
+   return await Art.distinct("brand");
+};
+
+export default {getarts,getArtById,createArt,updateArt,deleteArt, reactToArt, viewArt, countarts, addComment, deleteComment, getCategories, getBrands};

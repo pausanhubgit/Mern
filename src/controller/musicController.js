@@ -74,4 +74,47 @@ const viewMusic = async(req,res)=>{
   }
 };
 
-export default {getMusic, getMusicById, createMusic, updateMusic, deleteMusic, reactToMusic, viewMusic};
+const getMusicCount = async(req, res) => {
+  try {
+    const count = await musicService.countMusics(req.query);
+    res.status(200).json(count);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+};
+
+const addComment = async (req, res) => {
+  const id = req.params.id;
+  const { text } = req.body;
+  const { _id: userId, username } = req.user;
+  try {
+    const data = await musicService.addComment(id, userId, username, text);
+    res.json(data);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+};
+
+const deleteComment = async (req, res) => {
+  const id = req.params.id;
+  const commentId = req.params.commentId;
+  const userId = req.user._id.toString();
+  try {
+    const data = await musicService.deleteComment(id, commentId, userId);
+    res.json(data);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+};
+
+const getGenres = async(req, res) => {
+  try {
+    const genres = await musicService.getGenres();
+    res.status(200).json(genres);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+};
+
+export default {getMusic, getMusicById, createMusic, updateMusic, deleteMusic, reactToMusic, viewMusic, getMusicCount, addComment, deleteComment, getGenres};
+

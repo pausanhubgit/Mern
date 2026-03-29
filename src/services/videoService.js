@@ -11,16 +11,22 @@ const createVideo = async(data, files, createdBy) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-   const uploadedFiles = await uploadFile(files);
-   const promptMessage = Art_PROMPT.replace('%s', data.title).replace('%s', data.artist).replace('%s', data.category);
+    const uploadedFiles = await uploadFile(files);
+    
+    // Separate thumbnails from video files
+    const visualFiles = uploadedFiles.filter(f => f.resource_type === 'video' || (f.resource_type === 'raw' && f.format === 'mp4'));
+    const imageFiles = uploadedFiles.filter(f => f.resource_type === 'image');
 
-   const description = data.description ?? (await promptGemini(promptMessage));
-   const createdVideo = await Video.create({
-      ...data,
-      createdBy: createdBy._id,
-      videoUrls: uploadedFiles.map((item) => item?.url),
-      description,
-   });
+    const promptMessage = Art_PROMPT.replace('%s', data.title).replace('%s', data.artist).replace('%s', data.category);
+
+    const description = data.description ?? (await promptGemini(promptMessage));
+    const createdVideo = await Video.create({
+       ...data,
+       createdBy: createdBy._id,
+       videoUrls: visualFiles.map((item) => item?.url),
+       imageUrls: imageFiles.map((item) => item?.url),
+       description,
+    });
 
    // Increment user's totalVideos
    await UserModel.findByIdAndUpdate(createdBy._id, { $inc: { totalVideos: 1 } });
@@ -71,7 +77,8 @@ const getVideos = async(query) => {
    const videos = await Video.find(Filter)
    .sort(sort)
    .limit(limit)
-   .skip(offset);
+   .skip(offset)
+   .populate('createdBy', 'username name profileImageUrl');
    return videos;
 };
 
@@ -80,7 +87,7 @@ const getVideoById = async (id) => {
       await connectToDatabase();
    }
 
-   const foundVideo = await Video.findById(id);
+   const foundVideo = await Video.findById(id).populate('createdBy', 'username name profileImageUrl');
    if (!foundVideo) {
       throw {
          statusCode: 404,
@@ -146,8 +153,60 @@ const viewVideo = async (id) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-   await Video.findByIdAndUpdate(id, { $inc: { views: 1 } });
-   return { message: "View counted" };
+    await Video.findByIdAndUpdate(id, { $inc: { views: 1 } });
+
+    // 40% of $0.10 view revenue to Admin
+    await UserModel.findOneAndUpdate({ roles: "Admin" }, { $inc: { revenue: 0.04 } });
+
+    return { message: "View counted" };
 };
 
-export default {getVideos, getVideoById, createVideo, updateVideo, deleteVideo, reactToVideo, viewVideo};
+const countVideos = async(query) => {
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
+   const Filter = {};
+   if(query.name) Filter.title = { $regex: query.name, $options: 'i' };
+   if(query.createdBy) Filter.createdBy = query.createdBy;
+   if(query.category) Filter.category = query.category;
+   if(query.subcategory) Filter.subcategory = query.subcategory;
+   
+   return await Video.countDocuments(Filter);
+};
+
+const addComment = async (id, userId, username, text) => {
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
+   const video = await Video.findByIdAndUpdate(
+      id,
+      { $push: { comments: { userId, username, text } } },
+      { new: true }
+   );
+   return video;
+};
+
+const deleteComment = async (id, commentId, userId) => {
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
+   const video = await Video.findById(id);
+   const comment = video.comments.id(commentId);
+   if (!comment) throw { statusCode: 404, message: "Comment not found" };
+   if (comment.userId.toString() !== userId) {
+      throw { statusCode: 403, message: "Unauthorized to delete this comment" };
+   }
+   video.comments.pull(commentId);
+   await video.save();
+   return video;
+};
+
+const getGenres = async () => {
+   if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+   }
+   return await Video.distinct("category");
+};
+
+export default {getVideos, getVideoById, createVideo, updateVideo, deleteVideo, reactToVideo, viewVideo, countVideos, addComment, deleteComment, getGenres};
+

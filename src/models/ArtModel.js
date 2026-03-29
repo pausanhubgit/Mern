@@ -6,8 +6,8 @@ const ArtSchema = new mongoose.Schema({
     description: String,
     price: Number,
     category: String,
-     brand: String,
-     stock: Number,
+    brand: String,
+    stock: Number,
     type: String,
     
     createdAt: { type: Date, default: Date.now() },
@@ -22,6 +22,12 @@ const ArtSchema = new mongoose.Schema({
     },
     reactions: { type: Number, default: 0 },
     views: { type: Number, default: 0 },
+    comments: [{
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        username: String,
+        text: String,
+        createdAt: { type: Date, default: Date.now }
+    }]
 });
 
 const artModel = mongoose.model('Art', ArtSchema);

@@ -15,6 +15,9 @@ const MusicSchema = new mongoose.Schema({
     audioUrls:{
         type: [String],
     },
+    imageUrls:{
+        type: [String],
+    },
     
     createdBy : {
     type: mongoose.Schema.Types.ObjectId,
@@ -23,6 +26,12 @@ const MusicSchema = new mongoose.Schema({
     },
     reactions: { type: Number, default: 0 },
     views: { type: Number, default: 0 },
+    comments: [{
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        username: String,
+        text: String,
+        createdAt: { type: Date, default: Date.now }
+    }]
 });
 
 const musicModel = mongoose.model('Music', MusicSchema);

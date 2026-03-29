@@ -23,7 +23,12 @@ const payViaKhalti = async(data) => {
              },
 
     };
+    const apiKey = config.khalti.apiKey;
+    if(!apiKey) throw{message: "Khalti API Key is missing in security configuration."};
+    
     console.log("Khalti request body:", JSON.stringify(body));
+    console.log("Using Khalti Key starting with:", apiKey.substring(0, 4) + "****");
+
     try {
         const response = await axios.post(
             `${config.khalti.apiUrl}/epayment/initiate/`,
@@ -31,14 +36,14 @@ const payViaKhalti = async(data) => {
             {
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Key ${config.khalti.apiKey}`,
+                    "Authorization": `Key ${apiKey}`,
                 },
             }
         );
         console.log("Khalti response:", response.data);
         return response.data;
     } catch (error) {
-        console.error("Khalti API Error Response:", error.response?.data);
+        console.log("Khalti API Full Error Response:", JSON.stringify(error.response?.data));
         console.error("Khalti API Error Status:", error.response?.status);
         throw {
             statusCode: error.response?.status || 500,

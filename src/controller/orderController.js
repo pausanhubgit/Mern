@@ -11,7 +11,7 @@ const getOrders = async (req, res) => {
 
 const getOrdersByUser = async (req, res) => {
   try {
-    const data = await orderService.getOrderByUser(req.user._id);
+    const data = await orderService.getOrderByUser(req.query,req.user._id);
 
     res.json(data);
   } catch (error) {
@@ -88,4 +88,22 @@ const getOrdersOfMerchant = async (req, res) => {
     }
 };
 
-export default{getOrders, getOrdersOfMerchant,getOrdersByUser,getOrderById,createOrder,updateOrder,deleteOrder,orderPaymentViaKhalti,confirmOrderPayment}; 
+const markAsCOD = async (req, res) => {
+    try {
+        const data = await orderService.markAsCOD(req.params.id, req.user, req.body);
+        res.json({ message: "Order marked for Cash on Delivery", data });
+    } catch(error) {
+        res.status(error.statusCode || 500).send(error.message);
+    }
+};
+
+const cancelOrder = async (req, res) => {
+    try {
+        const data = await orderService.cancelOrder(req.params.id, req.user);
+        res.json({ message: "Order cancelled successfully", data });
+    } catch(error) {
+        res.status(error.statusCode || 500).send(error.message);
+    }
+};
+
+export default {getOrders, getOrdersOfMerchant,getOrdersByUser,getOrderById,createOrder,updateOrder,deleteOrder,orderPaymentViaKhalti,confirmOrderPayment, markAsCOD, cancelOrder}; 

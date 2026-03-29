@@ -82,9 +82,9 @@ try{
 };
 const resetPassword = async (req, res) => {
     const input = req.body;
-    const { Token, userId } = req.query;
+    const { token, userId } = req.query;
     try{
-        if(!Token || !userId){
+        if(!token || !userId){
             return res.status(400).json({ message: "Token and user id is required" });
         }
         if(!input.password){
@@ -96,7 +96,7 @@ const resetPassword = async (req, res) => {
         if(input.password !== input.confirmPassword){
             return res.status(400).json({ message: "Password and confirm password do not match" });
         }
-        const data = await authService.resetPassword(userId, Token, input.password);
+        const data = await authService.resetPassword(userId, token, input.password);
         res.json(data);
         return;
     }catch(error){
@@ -104,11 +104,26 @@ const resetPassword = async (req, res) => {
     }
 };
 
-const logout = async (req, res) => {
- res.clearCookie('authtoken');
- res.json({message: "Logout successful"});
- return;
+const googleLogin = async (req, res) => {
+    const { token } = req.body;
+    try {
+        if (!token) {
+            return res.status(400).json({ message: "Token is required" });
+        }
+        const data = await authService.googleLogin(token);
+        const authtoken = createJWT(data);
+        res.cookie("authtoken", authtoken, { maxAge: 86400 * 1000 });
+        res.status(200).json({ ...data, authtoken });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ message: error.message || "Google login failed" });
+    }
 };
 
-export default { register, login, forgetPassword, resetPassword, logout };
+const logout = async (req, res) => {
+    res.clearCookie('authtoken');
+    res.json({ message: "Logout successful" });
+    return;
+};
+
+export default { register, login, forgetPassword, resetPassword, logout, googleLogin };
 

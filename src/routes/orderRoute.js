@@ -16,5 +16,7 @@ router.put('/:id',auth,roleBasedAuth(Admin),orderController.updateOrder);
 router.put('/:id/confirm-payment',auth,orderController.confirmOrderPayment);
 router.delete('/:id',auth, orderController.deleteOrder);
 router.post("/:id/payment/khalti",auth,orderController.orderPaymentViaKhalti);
+router.put('/:id/cod',auth,orderController.markAsCOD);
+router.put('/:id/cancel',auth,orderController.cancelOrder);
 
 export default router;

@@ -7,6 +7,9 @@ import mainConfig from '../config/index.js';
 import sendSMS from '../utils/sms.js';
 import mongoose from 'mongoose';
 import connectToDatabase from '../config/database.js';
+import { OAuth2Client } from 'google-auth-library';
+
+const client = new OAuth2Client(mainConfig.googleClientId);
 
 const register = async(data) =>{
     if (mongoose.connection.readyState !== 1) {
@@ -28,6 +31,7 @@ const register = async(data) =>{
         _id: registerUser._id,
         username: registerUser.username,
         email: registerUser.email,
+        roles: registerUser.roles,
     }
 };
 
@@ -71,10 +75,13 @@ if(!user)  throw{statusCode:404, message:"User not found"};
          <div style="padding:20px">
          <h1>Reset Password Link </h1>
          <a href="${mainConfig.appUrl}/reset-password?token=${token}&userId=${user._id}"
-         style="padding:5px 15px;
-         background color:blue;
-         color:black;
+         style="padding:10px 20px;
+         background-color:#6d28d9;
+         color:white;
          text-decoration:none;
+         border-radius:8px;
+         font-weight:bold;
+         display:inline-block;
          ">Reset Password</a>
          </div>
          `,
@@ -114,4 +121,34 @@ const resetPassword = async(userId, token, newPassword) =>{
 
 // };
 
-export default{register, login, forgetPassword, resetPassword};
+const googleLogin = async (token) => {
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
+    const ticket = await client.verifyIdToken({
+        idToken: token,
+        audience: mainConfig.googleClientId,
+    });
+    const { email, name, picture, sub } = ticket.getPayload();
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+        user = await User.create({
+            username: name,
+            email: email,
+            profileImageUrl: picture,
+            googleId: sub,
+            password: bcrypt.hashSync(crypto.randomBytes(16).toString('hex')), // random password
+        });
+    }
+
+    return {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        roles: user.roles,
+    };
+};
+
+export default{register, login, forgetPassword, resetPassword, googleLogin};

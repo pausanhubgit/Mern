@@ -11,6 +11,9 @@ import auth from '../src/middlewares/auth.js';
 import roleBasedAuth from '../src/middlewares/roleBasedAuth.js';
 import { Admin } from '../src/constants/roles.js';
 import orderRoute from '../src/routes/orderRoute.js';
+import eventRoute from '../src/routes/eventRoute.js';
+import contactRoute from '../src/routes/contactRoute.js';
+import subscriberRoute from '../src/routes/subscriberRoute.js';
 import multer from 'multer';
 import { connectCloudinary } from '../src/config/cloudinary.js';
 import { version } from 'mongoose';
@@ -22,11 +25,10 @@ const app = express();
 const upload = multer({storage: multer.memoryStorage()});
 connectToDatabase().catch(err => console.error('DB connection error:', err));
 connectCloudinary().catch(err => console.error('Cloudinary error:', err));
-app.use(cors(
-  // cors[{
-  //   origin: config.appUrl,
-  // }]
-));
+app.use(cors({
+  origin: ["http://localhost:3000", config.appUrl],
+  credentials: true,
+}));
 
 app.use(logger);
 app.use(express.json({ strict: false }));
@@ -47,6 +49,9 @@ app.use('/api/arts', artRoute);
 app.use('/api/musics', musicRoute);
 app.use('/api/videos', videoRoute);
 app.use('/api/orders', auth, orderRoute);
+app.use('/api/events', eventRoute);
+app.use('/api/contacts', contactRoute);
+app.use('/api/subscribers', subscriberRoute);
 
 // Global error handler (must be last)
 app.use((err, req, res, next) => {

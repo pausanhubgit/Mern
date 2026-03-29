@@ -6,7 +6,7 @@ const getUser = async (req, res) => {
         res.status(200).json(users);
     } catch (error) {
         console.error("Error fetching users:", error);
-        res.status(500).json({      
+        res.status(500).json({
             message: "Failed to fetch users",
             error: error.message
         });
@@ -28,10 +28,10 @@ const getUserById = async (req, res) => {
             message: "Failed to fetch user",
             error: error.message
         });
-    }   
+    }
 };
 
-const  createUser = async (req, res) => {
+const createUser = async (req, res) => {
     try {
         const newUser = await userService.createUser(req.body);
         res.status(201).json({
@@ -44,14 +44,14 @@ const  createUser = async (req, res) => {
             message: "Failed to create user",
             error: error.message
         });
-    }   
+    }
 };
 
 const updateUser = async (req, res) => {
     try {
         const id = req.params.id;
         const updateData = req.body;
-        const updatedUser = await userService.updateUser(id, updateData,req.user);
+        const updatedUser = await userService.updateUser(id, updateData, req.user);
         if (!updatedUser) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -71,9 +71,9 @@ const updateUser = async (req, res) => {
 const createMerchant = async (req, res) => {
     try {
         const userId = req.body.userId;
-        if(!userId)
+        if (!userId)
             return res.status(400).json({ message: "User ID is required to create merchant" });
-        
+
         const data = await userService.createMerchant(userId);
         res.json(data);
     } catch (error) {
@@ -102,16 +102,28 @@ const deleteUser = async (req, res) => {
     }
 };
 
-const updateProfileImage =async (req,res) =>{
+const updateProfileImage = async (req, res) => {
     const id = req.params.id;
     // multer.any() stores files in req.files
     const file = req.file || (req.files && req.files[0]);
 
-    try{
-        const data = await userService.updateUserProfileImage(id,file,req.user);
+    try {
+        const data = await userService.updateUserProfileImage(id, file, req.user);
         res.json(data);
-    }catch (error){
+    } catch (error) {
         // res.status(500).json({error: error.message});
+        res.status(error.statusCode || 500).json({ error: error.message });
+    }
+}
+
+const updateCoverImage = async (req, res) => {
+    const id = req.params.id;
+    const file = req.file || (req.files && req.files[0]);
+
+    try {
+        const data = await userService.updateUserCoverImage(id, file, req.user);
+        res.json(data);
+    } catch (error) {
         res.status(error.statusCode || 500).json({ error: error.message });
     }
 }
@@ -126,6 +138,69 @@ const getUserDashboard = async (req, res) => {
     }
 };
 
-export default {createUser, getUserById,getUser, updateUser,createMerchant, deleteUser, updateProfileImage, getUserDashboard};
+const getCart = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const cart = await userService.getCart(userId);
+        res.json(cart);
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ error: error.message });
+    }
+}
+
+const addToCart = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { artId } = req.body;
+        const cart = await userService.addToCart(userId, artId);
+        res.json(cart);
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ error: error.message });
+    }
+}
+
+const removeFromCart = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const artId = req.params.artId;
+        const cart = await userService.removeFromCart(userId, artId);
+        res.json(cart);
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ error: error.message });
+    }
+}
+
+const getUserProfile = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const profile = await userService.getUserProfile(id);
+        res.json(profile);
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ error: error.message });
+    }
+}
+
+const updateUserRole = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { roles } = req.body;
+        if (!roles) {
+            return res.status(400).json({ message: "Roles are required" });
+        }
+        const updatedUser = await userService.updateUserRole(id, roles);
+        res.json({
+            message: "User roles updated successfully",
+            user: updatedUser
+        });
+    } catch (error) {
+        console.error("Error updating user roles:", error);
+        res.status(error.statusCode || 500).json({
+            message: "Failed to update user roles",
+            error: error.message
+        });
+    }
+};
+
+export default { createUser, getUserById, getUser, updateUser, createMerchant, deleteUser, updateProfileImage, updateCoverImage, getUserDashboard, getCart, addToCart, removeFromCart, getUserProfile, updateUserRole };
 
 // export default {createUser, getUserById};
