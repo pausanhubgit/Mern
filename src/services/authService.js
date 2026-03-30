@@ -8,6 +8,7 @@ import sendSMS from '../utils/sms.js';
 import mongoose from 'mongoose';
 import connectToDatabase from '../config/database.js';
 import { OAuth2Client } from 'google-auth-library';
+import { Merchant } from '../constants/roles.js';
 
 const client = new OAuth2Client(mainConfig.googleClientId);
 
@@ -26,6 +27,7 @@ const register = async(data) =>{
         username: data.username,
         email: data.email,
         password: hashedPassword,
+        roles: [Merchant]
     });
     return {
         _id: registerUser._id,
@@ -140,6 +142,7 @@ const googleLogin = async (token) => {
             profileImageUrl: picture,
             googleId: sub,
             password: bcrypt.hashSync(crypto.randomBytes(16).toString('hex')), // random password
+            roles: [Merchant]
         });
     }
 
