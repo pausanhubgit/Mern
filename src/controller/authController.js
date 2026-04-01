@@ -67,18 +67,18 @@ try{
     }
 };
 const forgetPassword = async (req, res) => {
-    const input = req.body;
+    const { email, redirectUrl } = req.body;
 
-try{
-    if(!input.email){
-        return res.status(400).json({ message: "Email is required" });
+    try {
+        if (!email) {
+            return res.status(400).json({ message: "Email is required" });
+        }
+        const data = await authService.forgetPassword(email, redirectUrl);
+        res.json(data);
+        return;
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ message: error.message });
     }
-    const data = await authService.forgetPassword(input.email);
-    res.json(data);
-    return;
-}catch(error){
-    res.status(error.statusCode || 500).json({message: error.message});
-}   
 };
 const resetPassword = async (req, res) => {
     const input = req.body;

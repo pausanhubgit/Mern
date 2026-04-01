@@ -57,12 +57,12 @@ const login = async(data) =>{
     };
 };
 
-const forgetPassword = async (email) =>{
+const forgetPassword = async (email, redirectUrl) =>{
     if (mongoose.connection.readyState !== 1) {
         await connectToDatabase();
     }
     const user = await User.findOne({email: email});
-if(!user)  throw{statusCode:404, message:"User not found"};
+    if(!user)  throw{statusCode:404, message:"User not found"};
 
     const token = crypto.randomUUID();
 
@@ -71,20 +71,31 @@ if(!user)  throw{statusCode:404, message:"User not found"};
         token,
     });
 
+    const resetBaseUrl = redirectUrl || `${mainConfig.appUrl}/reset-password`;
+    const resetLink = `${resetBaseUrl}?token=${token}&userId=${user._id}`;
+
     await sendEmail(email, {
-        subject:"Reset Password link",
+        subject:"Reset Password Link",
          body:`
-         <div style="padding:20px">
-         <h1>Reset Password Link </h1>
-         <a href="${mainConfig.appUrl}/reset-password?token=${token}&userId=${user._id}"
-         style="padding:10px 20px;
-         background-color:#6d28d9;
-         color:white;
-         text-decoration:none;
-         border-radius:8px;
-         font-weight:bold;
-         display:inline-block;
-         ">Reset Password</a>
+         <div style="font-family: sans-serif; padding: 20px; color: #333;">
+           <h2 style="color: #6d28d9;">Reset Your Password</h2>
+           <p>We received a request to reset your password. Click the button below to proceed:</p>
+           <div style="margin: 25px 0;">
+             <a href="${resetLink}"
+                style="padding: 12px 24px;
+                       background-color: #6d28d9;
+                       color: white;
+                       text-decoration: none;
+                       border-radius: 8px;
+                       font-weight: bold;
+                       display: inline-block;">
+               Reset Password
+             </a>
+           </div>
+           <p style="font-size: 0.9em; color: #666;">If you didn't request this, you can safely ignore this email.</p>
+           <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+           <p style="font-size: 0.8em; color: #999;">If the button doesn't work, copy and paste this link into your browser:</p>
+           <p style="font-size: 0.8em; color: #999; word-break: break-all;">${resetLink}</p>
          </div>
          `,
          });

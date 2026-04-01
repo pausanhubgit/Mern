@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
-import mainConfig from './index.js';    
+import mainConfig from './index.js';
 
 async function connectToDatabase() {
-try{
+  try {
     const status = await mongoose.connect(mainConfig.mongoDBURL);
 
     console.log(`MongoDB connected: ${status.connection.host}`);

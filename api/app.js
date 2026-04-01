@@ -27,8 +27,11 @@ connectToDatabase().catch(err => console.error('DB connection error:', err));
 connectCloudinary().catch(err => console.error('Cloudinary error:', err));
 app.use(cors({
   origin: [
-    'https://aether-one-alpha.vercel.app', // deployed frontend
-    'http://localhost:3000',               // local dev
+    'https://aether-one-alpha.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://nextjsinit.vercel.app',
+    config.appUrl,
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

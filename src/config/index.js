@@ -20,6 +20,9 @@ const mainConfig = {
         apiUrl: process.env.KHALTI_API_URL || "",
         returnUrl: process.env.KHALTI_RETURN_URL || "",
     },
+    stripe:{
+        secretKey: process.env.STRIPE_SECRET_KEY || "",
+    },  
     emailApiKey: process.env.EMAIL_API_KEY || "",
     emailUser: process.env.EMAIL_USER || "",
     emailPass: process.env.EMAIL_PASS || "",

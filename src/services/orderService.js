@@ -223,6 +223,33 @@ const markAsCOD = async(id, user, data = {})=>{
     return await Order.findByIdAndUpdate(id, updatePayload, { new: true });
 };
 
+const orderPaymentViaStripe = async(id,user)=>{
+    const order = await getOrderById(id);
+    if(order.userid._id != user._id){
+        throw{
+            statusCode:403,
+            message:"Unauthorized to update this order",
+        };
+    }
+    const transactionId = crypto.randomUUID();
+    const orderPayment = await Payment.create({
+        amount: order.totalPrice,
+        method: 'online',
+        transactionId,
+        status: 'pending'
+    });
+    await Order.findByIdAndUpdate(id,{
+        payment: orderPayment._id,
+        status: ORDER_STATUS_PENDING,
+    });
+    return await paymentUtil.payViaStripe({
+        amount: Math.round(order.totalPrice * 100),
+        orderId: order.id,
+        orderName: order.orderNumber,
+        customer: order.userid,
+    });
+};  
+
 const cancelOrder = async(id, user)=>{
     const order = await getOrderById(id);
     if(order.userid._id != user._id && !user.roles?.includes("Admin")){
@@ -236,4 +263,4 @@ const cancelOrder = async(id, user)=>{
     }, { new: true });
 };
 
-export default {getOrders,getOrderById, getOrdersOfMerchant,createOrder, deleteOrder,getOrderByUser,updateOrder,orderPaymentViaKhalti,confirmOrderPayment,markAsCOD,cancelOrder};
+export default { getOrders, getOrderById, getOrdersOfMerchant, createOrder, deleteOrder, getOrderByUser, updateOrder, orderPaymentViaKhalti, orderPaymentViaStripe, confirmOrderPayment, markAsCOD, cancelOrder };

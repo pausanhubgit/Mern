@@ -11,11 +11,14 @@ const transporter = nodemailer.createTransport({
 
 async function sendEmail(recipient, { subject, body }) {
     if (!mainconfig.emailUser || !mainconfig.emailPass) {
-        console.error("CRITICAL: EMAIL_USER or EMAIL_PASS not found in environment.");
-        throw { statusCode: 500, message: "Server email configuration is missing or incomplete." };
+        console.error("[EMAIL CONFIG ERROR] EMAIL_USER or EMAIL_PASS missing in environment.");
+        throw {
+            statusCode: 500,
+            message: "Backend email configuration is incomplete. Check Vercel Environment Variables."
+        };
     }
 
-    console.log(`Sending email to: ${recipient}`);
+    console.log(`[EMAIL] Attempting to send to: ${recipient}`);
     try {
         const mailOptions = {
             from: mainconfig.emailUser,
@@ -25,11 +28,19 @@ async function sendEmail(recipient, { subject, body }) {
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log('Email sent successfully: ' + info.response);
+        console.log('[EMAIL] Sent successfully:', info.messageId);
         return info;
     } catch (error) {
-        console.error('Error sending email:', error);
-        throw error;
+        console.error('[EMAIL ERROR] Detailed failure:', {
+            code: error.code,
+            command: error.command,
+            response: error.response,
+            responseCode: error.responseCode
+        });
+        throw {
+            statusCode: 500,
+            message: `Email delivery failed: ${error.message}. Ensure App Passwords are used.`
+        };
     }
 }
 
