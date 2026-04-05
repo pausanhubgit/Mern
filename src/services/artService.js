@@ -24,6 +24,9 @@ const createArt = async(data, files, createdBy) => {
         console.error("AI Description generation failed:", aiError);
         description = data.description || `A collection of visual art titled ${data.title}`;
     }
+    
+    if (data.stock) data.stock = Number(data.stock);
+    if (data.price) data.price = Number(data.price);
 
    const createdArt = await Art.create({
       ...data,
@@ -115,7 +118,10 @@ const updateArt = async (id, data, files, user) => {
       };
    }
 
-   const updatedData = data;
+    if (data.stock) data.stock = Number(data.stock);
+    if (data.price) data.price = Number(data.price);
+
+    const updatedData = data;
    if (files && files.length>0) {
       const uploadedFiles = await uploadFile(files);
       updatedData.imageUrls = uploadedFiles.map((item) => item?.url);
