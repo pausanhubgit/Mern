@@ -3,34 +3,34 @@ import config from "../config/index.js";
 import Stripe from "stripe";
 
 const payViaKhalti = async (data) => {
-  if (!data) throw { message: "Payment data is required." };
-  if (!data.amount) throw { message: "Amount is required." };
-  if (!data.purchaseOrderId) throw { message: "Purchase order id is required." };
-  if (!data.purchaseOrderName) throw { message: "Purchase order name is required." };
-  if (!data.customer) throw { message: "Customer information is required." };
-  if (!data.customer.email) throw { message: "Customer email is required." };
-  const customerName = data.customer.name || data.customer.username || (data.customer.email ? data.customer.email.split('@')[0] : "");
-  if (!customerName) throw { message: "Customer name is required." };
+  if (!data) throw { statusCode: 400, message: "Payment data is required." };
+  if (!data.amount) throw { statusCode: 400, message: "Amount is required." };
+  if (!data.purchaseOrderId) throw { statusCode: 400, message: "Purchase order id is required." };
+  if (!data.purchaseOrderName) throw { statusCode: 400, message: "Purchase order name is required." };
+  if (!data.customer) throw { statusCode: 400, message: "Customer information is required." };
+  
+  const customerName = data.customer.name || data.customer.username || (data.customer.email ? data.customer.email.split('@')[0] : "Customer");
+  const customerEmail = data.customer.email || "no-email@khalti.com";
 
   const body = {
-    return_url: `${config.appUrl}/orders/${data.purchaseOrderId}/payment/khalti`,
-    amount: data.amount,
-    website_url: config.appUrl,
-    purchase_order_id: data.purchaseOrderId,
-    purchase_order_name: data.purchaseOrderName,
+    return_url: data.return_url || config.khalti.returnUrl || `${config.appUrl}/khalti/payment`,
+    website_url: data.website_url || config.appUrl,
+    amount: parseInt(data.amount),
+    purchase_order_id: String(data.purchaseOrderId || ""),
+    purchase_order_name: String(data.purchaseOrderName || ""),
     customer_info: {
       name: customerName,
-      email: data.customer.email,
-      phone: data.customer.phone || "",
+      email: customerEmail,
+      phone: data.customer.phone || "9800000001",
     },
   };
 
-  const apiKey = (config.khalti.apiKey || "").trim(); // Trim key to handle leading/trailing spaces
-  if (!apiKey) throw { message: "Khalti API Key is missing in security configuration." };
+  const apiKey = (config.khalti.apiKey || "").trim();
+  if (!apiKey) throw { statusCode: 500, message: "Khalti API Secret Key is missing. Please check your .env file." };
 
-  console.log("Khalti request body:", JSON.stringify(body));
-  console.log("Using Khalti Key starting with:", apiKey.substring(0, 4) + "****");
-
+  console.log("[Khalti Initiation] Starting request for Order:", data.purchaseOrderName);
+  console.log("DEBUG: Using API URL:", config.khalti.apiUrl, "Key length:", apiKey.length, "Key starts with:", apiKey.substring(0, 5));
+  
   try {
     const response = await axios.post(
       `${config.khalti.apiUrl}/epayment/initiate/`,
@@ -42,21 +42,18 @@ const payViaKhalti = async (data) => {
         },
       }
     );
-    console.log("Khalti response:", response.data);
     return response.data;
   } catch (error) {
-    console.log("Khalti API Full Error Response:", JSON.stringify(error.response?.data));
-    console.error("Khalti API Error Status:", error.response?.status);
+    const errorData = error.response?.data;
+    console.error("[Khalti API Error]:", JSON.stringify(errorData || error.message, null, 2));
+    
     throw {
       statusCode: error.response?.status || 500,
-      message:
-        error.response?.data?.detail ||
-        error.response?.data ||
-        error.message ||
-        "Payment initialization failed",
+      message: errorData?.detail || errorData?.message || "Khalti payment initiation failed. Please verify your keys and environment.",
     };
   }
 };
+
 
 const payViaStripe = async (data) => {
   if (!data) throw { message: "Payment data is required." };
@@ -64,19 +61,22 @@ const payViaStripe = async (data) => {
 
   const stripe = new Stripe(config.stripe.secretKey);
 
+  // Convert NPR to USD for Stripe (approx rate: 1 USD = 135 NPR)
+  // Stripe requires amount in smallest unit (cents), and does not support NPR
+  const amountInUSD = Math.round((data.amount / 135) * 100); // paisa -> NPR -> cents
+
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: data.amount,
-    currency: data.currency || "npr",
-    automatic_payment_methods: {
-      enabled: true,
-      // allow_redirects: "never", // Removing this to allow all methods if needed
-    },
+    amount: amountInUSD || 100, // minimum 100 cents = $1 USD as fallback
+    currency: "usd",
+    // payment_method_types must be ['card'] when using Stripe Elements (CardElement)
+    payment_method_types: ["card"],
     metadata: {
       customerName: data.customer?.name || data.customer?.username || "",
       customerEmail: data.customer?.email || "",
       customerPhone: data.customer?.phone || "",
       OrderId: data.orderId || "",
       OrderName: data.orderName || "",
+      originalAmountNPR: String(data.amount || 0),
     }
   });
   return paymentIntent;

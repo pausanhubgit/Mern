@@ -27,9 +27,11 @@ const mainConfig = {
     emailUser: process.env.EMAIL_USER || "",
     emailPass: process.env.EMAIL_PASS || "",
     twilio:{
-        sid: process.env.TWILIO_SID || "",
-        authToken: process.env.TWILIO_AUTH_TOKEN || "",
+        sid: (process.env.TWILIO_SID || "").trim(),
+        authToken: (process.env.TWILIO_AUTH_TOKEN || "").trim(),
+        phoneNumber: (process.env.TWILIO_PHONE_NUMBER || "").trim(),
     },
+
     gemini:{
         url: process.env.GEMINI_URL || "",
         apiKey: process.env.GEMINI_API_KEY || "",

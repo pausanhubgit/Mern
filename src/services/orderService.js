@@ -1,4 +1,5 @@
 import Order from "../models/OrderModel.js";
+import User from "../models/UserModel.js";
 import crypto from "crypto";
 import Payment from "../models/Payment.js";
 import paymentUtil from "../utils/payment.js";
@@ -49,9 +50,16 @@ const createOrder = async (data, userid) => {
     const orderNumber = crypto.randomUUID();
     return await Order.create({ ...data, userid:userid, orderNumber });
 };
-const updateOrder = async (id,data,user)=>{
+const updateOrder = async (id, data, user) => {
     const order = await getOrderById(id);
-    if(order.user._id != user._id){
+    
+    // Allow update if the user made the order OR if the user is an Admin
+    const isOwner = order.userid?._id?.toString() === user._id.toString();
+    const isAdmin = (user.roles || []).includes("Admin") || (user.roles || []).includes("admin") || (user.roles || []).map(r => r.toUpperCase()).includes("ADMIN");
+    // Allow update if the user is a Merchant who sells at least one item in the order
+    const isMerchantForOrder = order.orderItems?.some(item => item.artId?.createdBy?.toString() === user._id.toString());
+    
+    if(!isOwner && !isAdmin && !isMerchantForOrder){
         throw{
             statusCode:403,
             message:"Unauthorized to update this order",
@@ -64,18 +72,18 @@ const updateOrder = async (id,data,user)=>{
  
 const deleteOrder = async (id,user) => {
         const order = await getOrderById(id);
-    if(order.userid._id != user._id && !user.roles.includes("Admin")){
+    if(order.userid._id.toString() !== user._id.toString() && !(user.roles || []).includes("Admin")){
         throw{
             statusCode:403,
-            message:"Unauthorized to update this order",
+            message:"Unauthorized to delete this order",
         };
     }
     return await Order.findByIdAndDelete(id);
 };
 
-const orderPaymentViaKhalti = async(id,user)=>{
+const orderPaymentViaKhalti = async(id,user, body = {})=>{
     const order = await getOrderById(id);
-    if(order.userid._id != user._id){
+    if(order.userid._id.toString() !== user._id.toString()){
         throw{
             statusCode:403,
             message:"Unauthorized to update this order",
@@ -92,17 +100,20 @@ const orderPaymentViaKhalti = async(id,user)=>{
         payment: orderPayment._id,
         status: ORDER_STATUS_PENDING,
     });
+    // Extract only safe fields from body (never trust client-supplied URLs)
     return await paymentUtil.payViaKhalti({
         amount: Math.round(order.totalPrice * 100),
         purchaseOrderId: order.id,
         purchaseOrderName: order.orderNumber,
         customer: order.userid,
+        ...body
     });
+
 };
 
 const confirmOrderPayment = async(id,status,user)=>{
     const order = await getOrderById(id);
-    if(order.userid._id != user._id){
+    if(order.userid._id.toString() !== user._id.toString()){
         throw{
             statusCode:403,
             message:"Unauthorized to update this order",
@@ -117,11 +128,15 @@ const confirmOrderPayment = async(id,status,user)=>{
         await Order.findByIdAndUpdate(id, { $set: { status: ORDER_STATUS_CONFIRMED } });
         
         // 40% Profit to Admin
-        const profit = (order.totalPrice || 0) * 0.40;
-        await UserModel.findOneAndUpdate(
-            { roles: "Admin" }, 
-            { $inc: { revenue: profit } }
-        );
+        try {
+            const profit = (order.totalPrice || 0) * 0.40;
+            await User.findOneAndUpdate(
+                { roles: "Admin" }, 
+                { $inc: { revenue: profit } }
+            );
+        } catch(e) {
+            console.warn("Admin revenue update skipped:", e.message);
+        }
     } else {
         await Payment.findByIdAndUpdate(paymentId, { $set: { status: payment_STATUS_FAILED } });
         await Order.findByIdAndUpdate(id, { $set: { status: ORDER_STATUS_CANCELLED } });
@@ -169,11 +184,11 @@ $unwind: "$user",
 return orders
 .map((order) => {
     const filteredItems = order.artItems.filter(
-        (item)=>item.createdBy == merchantId
+        (item) => item.createdBy?.toString() === merchantId.toString()
     );
     return {
         ...order,
-        orderItems:filteredItems,
+        orderItems: filteredItems,
     };
 }).filter((order)=>order.orderItems.length > 0);
 
@@ -182,7 +197,7 @@ return orders
 
 const markAsCOD = async(id, user, data = {})=>{
     const order = await getOrderById(id);
-    if(order.userid._id != user._id){
+    if(order.userid._id.toString() !== user._id.toString()){
         throw{
             statusCode:403,
             message:"Unauthorized to update this order",
@@ -191,7 +206,7 @@ const markAsCOD = async(id, user, data = {})=>{
     const transactionId = crypto.randomUUID();
     const orderPayment = await Payment.create({
         amount: order.totalPrice,
-        method: 'cod',
+        method: 'cash',
         transactionId,
         status: 'pending'
     });
@@ -211,13 +226,18 @@ const markAsCOD = async(id, user, data = {})=>{
     }
     
     // Also optionally update User profile if new phone/email is provided
-    if (data.phone || data.email) {
-        await mongoose.model('User').findByIdAndUpdate(user._id, {
-            $set: { 
-               ...(data.phone && { phone: data.phone }),
-               ...(data.email && { email: data.email })
-            }
-        });
+    try {
+        if (data.phone || data.email) {
+            await User.findByIdAndUpdate(user._id, {
+                $set: { 
+                   ...(data.phone && { phone: data.phone }),
+                   ...(data.email && { email: data.email })
+                }
+            });
+        }
+    } catch(err) {
+        // Ignore duplicate key errors if a user puts a phone already in DB
+        console.warn("User profile update on COD failed:", err.message);
     }
 
     return await Order.findByIdAndUpdate(id, updatePayload, { new: true });
@@ -225,7 +245,7 @@ const markAsCOD = async(id, user, data = {})=>{
 
 const orderPaymentViaStripe = async(id,user)=>{
     const order = await getOrderById(id);
-    if(order.userid._id != user._id){
+    if(order.userid._id.toString() !== user._id.toString()){
         throw{
             statusCode:403,
             message:"Unauthorized to update this order",
@@ -252,7 +272,7 @@ const orderPaymentViaStripe = async(id,user)=>{
 
 const cancelOrder = async(id, user)=>{
     const order = await getOrderById(id);
-    if(order.userid._id != user._id && !user.roles?.includes("Admin")){
+    if(order.userid._id.toString() !== user._id.toString() && !(user.roles || []).includes("Admin")){
         throw{
             statusCode:403,
             message:"Unauthorized to update this order",

@@ -11,22 +11,35 @@ const createMusic = async(data, files, createdBy) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-   const uploadedFiles = await uploadFile(files);
-   
-   // Separate images (thumbnails) from audio files
-   const audioFiles = uploadedFiles.filter(f => f.resource_type !== 'image');
-   const imageFiles = uploadedFiles.filter(f => f.resource_type === 'image');
+    const uploadedResults = await uploadFile(files);
+    
+    // Separate files based on the fieldname provided by the upload utility
+    const audioFiles = uploadedResults.filter(f => f.fieldname === 'media');
+    const imageFiles = uploadedResults.filter(f => f.fieldname === 'image');
 
-   const promptMessage = Art_PROMPT.replace('%s', data.title).replace('%s', data.artist).replace('%s', data.category);
+    const audioUrls = audioFiles.map(f => f.secure_url || f.url);
+    const imageUrls = imageFiles.map(f => f.secure_url || f.url);
 
-   const description = data.description ?? (await promptGemini(promptMessage));
-   const createdMusic = await Music.create({
-      ...data,
-      createdBy: createdBy._id,
-      audioUrls: audioFiles.map((item) => item?.url),
-      imageUrls: imageFiles.map((item) => item?.url),
-      description,
-   });
+    // AI Description Generation with safety fallback
+    let description = data.description || "";
+    try {
+        if (!description) {
+            const promptMessage = Art_PROMPT.replace('%s', data.title || 'Unknown').replace('%s', data.artist || 'Unknown').replace('%s', data.category || 'Unknown');
+            const aiDescription = await promptGemini(promptMessage);
+            description = aiDescription || `A beautiful track titled ${data.title}`;
+        }
+    } catch (aiError) {
+        console.error("AI Description generation failed:", aiError);
+        description = data.description || `A music track titled ${data.title}`;
+    }
+
+    const createdMusic = await Music.create({
+       ...data,
+       createdBy: createdBy._id,
+       audioUrls,
+       imageUrls,
+       description,
+    });
 
    // Increment user's totalMusics
    await UserModel.findByIdAndUpdate(createdBy._id, { $inc: { totalMusics: 1 } });
@@ -51,9 +64,10 @@ const getMusics = async(query) => {
    const brand = query.brand;
    const category = query.category;
    const subcategory = query.subcategory;
-   const min = query.min;
-   const max = query.max;
-   const name = query.name;
+   const genre = query.genre; // genre maps to category field
+   const min = query.min !== undefined ? Number(query.min) : (query.minPrice !== undefined ? Number(query.minPrice) : undefined);
+   const max = query.max !== undefined ? Number(query.max) : (query.maxPrice !== undefined ? Number(query.maxPrice) : undefined);
+   const name = query.name || query.title;
    const createdBy = query.createdBy;
 
    const Filter = {};
@@ -71,7 +85,8 @@ const getMusics = async(query) => {
       const branditems = brand.split(',');
       Filter.brand = { $in: branditems };
    }
-   if (category) Filter.category = category;
+   if (genre) Filter.category = genre; // filter by genre (which is stored as category)
+   else if (category) Filter.category = category;
    if (subcategory) Filter.subcategory = subcategory;
    if(createdBy) Filter.createdBy = createdBy;
    const musics = await Music.find(Filter)
@@ -103,7 +118,8 @@ const updateMusic = async (id, data, files, user) => {
       await connectToDatabase();
    }
    const music = await getMusicById(id);
-   if (music.createdBy.toString() !== user._id && !user.roles.includes("admin")) {
+   const isAdmin = (user.roles || []).includes("Admin") || (user.roles || []).includes("admin") || (user.roles || []).map(r => r.toUpperCase()).includes("ADMIN");
+   if (music.createdBy?._id?.toString() !== user._id?.toString() && !isAdmin) {
       throw {
          statusCode: 403,
          message: "Unauthorized to update this music",
@@ -127,7 +143,8 @@ const deleteMusic = async (id, user) => {
       await connectToDatabase();
    }
    const music = await getMusicById(id);
-   if (music.createdBy.toString() !== user._id && !user.roles.includes("admin")) {
+   const isAdmin = (user.roles || []).includes("Admin") || (user.roles || []).includes("admin") || (user.roles || []).map(r => r.toUpperCase()).includes("ADMIN");
+   if (music.createdBy?._id?.toString() !== user._id?.toString() && !isAdmin) {
       throw {
          statusCode: 403,
          message: "Unauthorized to delete this music",

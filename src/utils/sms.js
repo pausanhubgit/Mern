@@ -1,17 +1,30 @@
 import twilio from 'twilio';
 import config from '../config/index.js';
 
-    const accountSid = config.twilio.sid;
-    const authToken = config.twilio.authToken;
+const accountSid = config.twilio.sid;
+const authToken = config.twilio.authToken;
 
-async function sendSMS(){
+async function sendSMS(to, body) {
+    if (!accountSid || !authToken || !config.twilio.phoneNumber) {
+        console.error("[SMS CONFIG ERROR] Twilio SID, Auth Token, or Phone Number missing.");
+        throw new Error("SMS configuration incomplete. Please verify your .env file.");
+    }
+
     const client = twilio(accountSid, authToken);
 
-   return await client.messages.create({
-        body: 'This is the ship that made the Kessel Run in fourteen parsecs?',
-        from: '+15017122661',
-        to: '+15558675310'
-    }).then(message => console.log(message.sid));
-};
+    try {
+        const message = await client.messages.create({
+            body: body,
+            from: config.twilio.phoneNumber,
+            to: to
+
+        });
+        console.log(`[SMS] Sent to ${to}:`, message.sid);
+        return message;
+    } catch (error) {
+        console.error('[SMS ERROR]:', error.message);
+        throw new Error(`SMS delivery failed: ${error.message}`);
+    }
+}
 
 export default sendSMS;

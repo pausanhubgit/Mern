@@ -67,13 +67,13 @@ try{
     }
 };
 const forgetPassword = async (req, res) => {
-    const { email, redirectUrl } = req.body;
+    const { identifier, method, redirectUrl } = req.body;
 
     try {
-        if (!email) {
-            return res.status(400).json({ message: "Email is required" });
+        if (!identifier || !method) {
+            return res.status(400).json({ message: "Identifier and method are required" });
         }
-        const data = await authService.forgetPassword(email, redirectUrl);
+        const data = await authService.forgetPassword(identifier, method, redirectUrl);
         res.json(data);
         return;
     } catch (error) {
@@ -82,10 +82,10 @@ const forgetPassword = async (req, res) => {
 };
 const resetPassword = async (req, res) => {
     const input = req.body;
-    const { token, userId } = req.query;
+    const { code, userId } = req.body; // Expecting code and userId in body now
     try{
-        if(!token || !userId){
-            return res.status(400).json({ message: "Token and user id is required" });
+        if(!code || !userId){
+            return res.status(400).json({ message: "Code and user id is required" });
         }
         if(!input.password){
             return res.status(400).json({ message: "Password is required" });
@@ -96,7 +96,7 @@ const resetPassword = async (req, res) => {
         if(input.password !== input.confirmPassword){
             return res.status(400).json({ message: "Password and confirm password do not match" });
         }
-        const data = await authService.resetPassword(userId, token, input.password);
+        const data = await authService.resetPassword(userId, code, input.password);
         res.json(data);
         return;
     }catch(error){
@@ -125,5 +125,31 @@ const logout = async (req, res) => {
     return;
 };
 
-export default { register, login, forgetPassword, resetPassword, logout, googleLogin };
+const sendOTP = async (req, res) => {
+    const { contactInfo, method } = req.body;
+    try {
+        if (!contactInfo || !method) {
+            return res.status(400).json({ message: "Contact info and method are required" });
+        }
+        const data = await authService.requestOTP(contactInfo, method);
+        res.json(data);
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ message: error.message });
+    }
+};
+
+const verifyOTP = async (req, res) => {
+    const { contactInfo, otp } = req.body;
+    try {
+        if (!contactInfo || !otp) {
+            return res.status(400).json({ message: "Contact info and OTP are required" });
+        }
+        const data = await authService.verifyOTP(contactInfo, otp);
+        res.json(data);
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ message: error.message });
+    }
+};
+
+export default { register, login, forgetPassword, resetPassword, logout, googleLogin, sendOTP, verifyOTP };
 

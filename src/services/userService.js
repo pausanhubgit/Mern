@@ -97,11 +97,80 @@ const updateUserCoverImage = async(id, file, authUser)=>{
     return updatedUser;
 }
 
+const getTotalReactions = async () => {
+    const [artReactions, musicReactions, videoReactions] = await Promise.all([
+        Art.aggregate([{ $group: { _id: null, total: { $sum: "$reactions" } } }]),
+        Music.aggregate([{ $group: { _id: null, total: { $sum: "$reactions" } } }]),
+        Video.aggregate([{ $group: { _id: null, total: { $sum: "$reactions" } } }])
+    ]);
+    return (artReactions[0]?.total || 0) + (musicReactions[0]?.total || 0) + (videoReactions[0]?.total || 0);
+}
+
+const getSystemStats = async () => {
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
+    const [totalUsers, totalArts, totalMusics, totalVideos, totalEvents, totalReactions] = await Promise.all([
+        UserModel.countDocuments(),
+        Art.countDocuments(),
+        Music.countDocuments(),
+        Video.countDocuments(),
+        Event.countDocuments(),
+        getTotalReactions()
+    ]);
+
+    return {
+        totalUsers: Math.max(0, totalUsers),
+        totalArts:  Math.max(0, totalArts),
+        totalMusics: Math.max(0, totalMusics),
+        totalVideos: Math.max(0, totalVideos),
+        totalEvents: Math.max(0, totalEvents),
+        totalReactions: Math.max(0, totalReactions),
+    };
+};
+
+const getContentGrowth = async () => {
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push({
+            name: d.toLocaleString('default', { month: 'short' }),
+            date: new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59)
+        });
+    }
+
+    const growthData = await Promise.all(months.map(async (m) => {
+        const [users, arts, events] = await Promise.all([
+            UserModel.countDocuments({ createdAt: { $lte: m.date } }),
+            Art.countDocuments({ createdAt: { $lte: m.date } }),
+            Event.countDocuments({ createdAt: { $lte: m.date } })
+        ]);
+        return { name: m.name, users, arts, events };
+    }));
+
+    return growthData;
+};
+
 const getUserDashboard = async(id, authUser)=>{
     const user = await getUserById(id);
     if (user._id.toString() !== authUser._id && !authUser.roles.includes(Admin)) {
         throw { statusCode: 403, message: "Access denied." };
     }
+
+    if (authUser.roles.includes(Admin)) {
+        const [stats, growthData] = await Promise.all([
+            getSystemStats(),
+            getContentGrowth()
+        ]);
+        return {
+            ...stats,
+            growthData,
+            revenue: user.revenue || 0,
+            badges: user.badges || []
+        };
+    }
+
     // Calculate badges based on counts
     const badges = [];
     if (user.totalArts > 0) badges.push("Artist");
@@ -129,6 +198,7 @@ const getUserDashboard = async(id, authUser)=>{
 }
 
 const addToCart = async (userId, artId) => {
+
     if (mongoose.connection.readyState !== 1) {
         await connectToDatabase();
     }

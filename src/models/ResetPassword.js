@@ -1,10 +1,11 @@
 import mongoose from "mongoose";
 
 const resetPasswordSchema = new mongoose.Schema({
-    token: {
+    code: {
         type: String,
-        required: [true,"Reset password token is required."],
+        required: [true,"Reset password code is required."],
     },
+
     expiresAt:{
         type:Date,
         default:()=>{

@@ -10,14 +10,25 @@ const createArt = async(data, files, createdBy) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-   const uploadedFiles = await uploadFile(files);
-   const promptMessage = Art_PROMPT.replace('%s', data.title).replace('%s', data.artist).replace('%s', data.category);
+   const uploadedResults = await uploadFile(files);
+   
+   // AI Description Generation with safety fallback
+    let description = data.description || "";
+    try {
+        if (!description) {
+            const promptMessage = Art_PROMPT.replace('%s', data.title || 'Unknown').replace('%s', data.artist || 'Unknown').replace('%s', data.category || 'Unknown');
+            const aiDescription = await promptGemini(promptMessage);
+            description = aiDescription || `A beautiful artwork titled ${data.title}`;
+        }
+    } catch (aiError) {
+        console.error("AI Description generation failed:", aiError);
+        description = data.description || `A collection of visual art titled ${data.title}`;
+    }
 
-   const description = data.description ?? (await promptGemini(promptMessage));
    const createdArt = await Art.create({
       ...data,
       createdBy: createdBy._id,
-      imageUrls: uploadedFiles.map((item) => item?.url),
+      imageUrls: uploadedResults.map((item) => item?.secure_url || item?.url),
       description,
    });
 
@@ -41,9 +52,9 @@ const getarts = async(query) => {
    }
    const brand = query.brand;
    const category = query.category;
-   const min = query.min;
-   const max = query.max;
-   const name = query.name;
+   const min = query.min !== undefined ? Number(query.min) : (query.minPrice !== undefined ? Number(query.minPrice) : undefined);
+   const max = query.max !== undefined ? Number(query.max) : (query.maxPrice !== undefined ? Number(query.maxPrice) : undefined);
+   const name = query.name || query.title;
    const createdBy = query.createdBy;
 
    const Filter = {};
@@ -92,7 +103,8 @@ const updateArt = async (id, data, files, user) => {
       await connectToDatabase();
    }
    const art = await getArtById(id);
-   if (art.createdBy.toString() !== user._id && !user.roles.includes("admin")) {
+   const isAdmin = (user.roles || []).includes("Admin") || (user.roles || []).includes("admin") || (user.roles || []).map(r => r.toUpperCase()).includes("ADMIN");
+   if (art.createdBy?._id?.toString() !== user._id?.toString() && !isAdmin) {
       throw {
          statusCode: 403,
          message: "Unauthorized to update this art",
@@ -116,7 +128,8 @@ const deleteArt = async (id, user) => {
       await connectToDatabase();
    }
    const art = await getArtById(id);
-   if (art.createdBy.toString() !== user._id && !user.roles.includes("admin")) {
+   const isAdmin = (user.roles || []).includes("Admin") || (user.roles || []).includes("admin") || (user.roles || []).map(r => r.toUpperCase()).includes("ADMIN");
+   if (art.createdBy?._id?.toString() !== user._id?.toString() && !isAdmin) {
       throw {
          statusCode: 403,
          message: "Unauthorized to delete this art",

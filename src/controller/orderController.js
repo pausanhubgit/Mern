@@ -62,7 +62,7 @@ const updateOrder = async (req, res) => {
 const orderPaymentViaKhalti = async (req, res) => {
     const orderId = req.params.id;
     try{
-      const data = await orderService.orderPaymentViaKhalti(orderId, req.user);
+      const data = await orderService.orderPaymentViaKhalti(orderId, req.user, req.body);
       res.json(data);
     } catch(error){
       res.status(error.statusCode || 500).send(error.message);

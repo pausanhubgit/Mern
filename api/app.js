@@ -42,7 +42,8 @@ app.use(cors({
 app.options('*', cors());
 
 app.use(logger);
-app.use(express.json({ strict: false }));
+app.use(express.json({ limit: '100mb', strict: false }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 app.get('/', (req, res) => {
   res.json({
