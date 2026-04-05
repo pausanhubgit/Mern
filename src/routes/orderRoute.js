@@ -13,6 +13,7 @@ router.get('/merchant',auth,roleBasedAuth(Merchant),orderController.getOrdersOfM
 router.get('/:id',auth,roleBasedAuth(Admin),orderController.getOrderById);
 router.post('/',auth, orderController.createOrder);
 router.put('/:id', auth, roleBasedAuth(Admin, Merchant), orderController.updateOrder);
+router.put('/:id/status', auth, roleBasedAuth(Admin, Merchant), orderController.updateOrder);
 router.put('/:id/confirm-payment',auth,orderController.confirmOrderPayment);
 router.delete('/:id',auth, orderController.deleteOrder);
 router.post("/:id/payment/khalti",auth,orderController.orderPaymentViaKhalti);

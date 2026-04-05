@@ -53,9 +53,13 @@ const createOrder = async (data, userid) => {
 const updateOrder = async (id, data, user) => {
     const order = await getOrderById(id);
     
+    // Normalize roles to an array of uppercase strings for robust comparison
+    const userRoles = Array.isArray(user.roles) ? user.roles : (typeof user.roles === 'string' ? [user.roles] : []);
+    const upperRoles = userRoles.map(r => String(r).toUpperCase());
+    
     // Allow update if the user made the order OR if the user is an Admin
     const isOwner = order.userid?._id?.toString() === user._id.toString();
-    const isAdmin = (user.roles || []).includes("Admin") || (user.roles || []).includes("admin") || (user.roles || []).map(r => r.toUpperCase()).includes("ADMIN");
+    const isAdmin = upperRoles.includes("ADMIN");
     // Allow update if the user is a Merchant who sells at least one item in the order
     const isMerchantForOrder = order.orderItems?.some(item => item.artId?.createdBy?.toString() === user._id.toString());
     
@@ -65,14 +69,24 @@ const updateOrder = async (id, data, user) => {
             message:"Unauthorized to update this order",
         };
     }
-    return await Order.findByIdAndUpdate(id,{
-        status:data.status,
-    },{new:true});
+    
+    // Whitelist updatable fields to prevent accidental overwrites of financial data
+    const updateData = {};
+    if (data.status) updateData.status = data.status;
+    if (data.estimatedDeliveryDate) updateData.estimatedDeliveryDate = data.estimatedDeliveryDate;
+    
+    return await Order.findByIdAndUpdate(id, { $set: updateData }, { new: true });
 }
  
 const deleteOrder = async (id,user) => {
         const order = await getOrderById(id);
-    if(order.userid._id.toString() !== user._id.toString() && !(user.roles || []).includes("Admin")){
+    
+    // Robust role normalization
+    const userRoles = Array.isArray(user.roles) ? user.roles : (typeof user.roles === 'string' ? [user.roles] : []);
+    const upperRoles = userRoles.map(r => String(r).toUpperCase());
+    const isAdmin = upperRoles.includes("ADMIN");
+
+    if(order.userid._id.toString() !== user._id.toString() && !isAdmin){
         throw{
             statusCode:403,
             message:"Unauthorized to delete this order",
@@ -272,7 +286,13 @@ const orderPaymentViaStripe = async(id,user)=>{
 
 const cancelOrder = async(id, user)=>{
     const order = await getOrderById(id);
-    if(order.userid._id.toString() !== user._id.toString() && !(user.roles || []).includes("Admin")){
+
+    // Robust role normalization
+    const userRoles = Array.isArray(user.roles) ? user.roles : (typeof user.roles === 'string' ? [user.roles] : []);
+    const upperRoles = userRoles.map(r => String(r).toUpperCase());
+    const isAdmin = upperRoles.includes("ADMIN");
+
+    if(order.userid._id.toString() !== user._id.toString() && !isAdmin){
         throw{
             statusCode:403,
             message:"Unauthorized to update this order",

@@ -103,7 +103,11 @@ const updateArt = async (id, data, files, user) => {
       await connectToDatabase();
    }
    const art = await getArtById(id);
-   const isAdmin = (user.roles || []).includes("Admin") || (user.roles || []).includes("admin") || (user.roles || []).map(r => r.toUpperCase()).includes("ADMIN");
+   // Robust role normalization
+   const userRoles = Array.isArray(user.roles) ? user.roles : (typeof user.roles === 'string' ? [user.roles] : []);
+   const upperRoles = userRoles.map(r => String(r).toUpperCase());
+   const isAdmin = upperRoles.includes("ADMIN");
+
    if (art.createdBy?._id?.toString() !== user._id?.toString() && !isAdmin) {
       throw {
          statusCode: 403,
@@ -128,7 +132,11 @@ const deleteArt = async (id, user) => {
       await connectToDatabase();
    }
    const art = await getArtById(id);
-   const isAdmin = (user.roles || []).includes("Admin") || (user.roles || []).includes("admin") || (user.roles || []).map(r => r.toUpperCase()).includes("ADMIN");
+   // Robust role normalization
+   const userRoles = Array.isArray(user.roles) ? user.roles : (typeof user.roles === 'string' ? [user.roles] : []);
+   const upperRoles = userRoles.map(r => String(r).toUpperCase());
+   const isAdmin = upperRoles.includes("ADMIN");
+
    if (art.createdBy?._id?.toString() !== user._id?.toString() && !isAdmin) {
       throw {
          statusCode: 403,

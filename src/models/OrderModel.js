@@ -62,6 +62,9 @@ const orderSchema = new mongoose.Schema({
     default: Date.now(),
     immutable: true,
   },
+  estimatedDeliveryDate: {
+    type: Date,
+  },
   payment:{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Payment",

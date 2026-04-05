@@ -127,7 +127,12 @@ const updateVideo = async (id, data, files, user) => {
       await connectToDatabase();
    }
    const video = await getVideoById(id);
-   const isAdmin = (user.roles || []).includes("Admin") || (user.roles || []).includes("admin") || (user.roles || []).map(r => r.toUpperCase()).includes("ADMIN");
+   
+   // Robust role normalization
+   const userRoles = Array.isArray(user.roles) ? user.roles : (typeof user.roles === 'string' ? [user.roles] : []);
+   const upperRoles = userRoles.map(r => String(r).toUpperCase());
+   const isAdmin = upperRoles.includes("ADMIN");
+
    if (video.createdBy?._id?.toString() !== user._id?.toString() && !isAdmin) {
       throw {
          statusCode: 403,
@@ -152,7 +157,12 @@ const deleteVideo = async (id, user) => {
       await connectToDatabase();
    }
    const video = await getVideoById(id);
-   const isAdmin = (user.roles || []).includes("Admin") || (user.roles || []).includes("admin") || (user.roles || []).map(r => r.toUpperCase()).includes("ADMIN");
+   
+   // Robust role normalization
+   const userRoles = Array.isArray(user.roles) ? user.roles : (typeof user.roles === 'string' ? [user.roles] : []);
+   const upperRoles = userRoles.map(r => String(r).toUpperCase());
+   const isAdmin = upperRoles.includes("ADMIN");
+
    if (video.createdBy?._id?.toString() !== user._id?.toString() && !isAdmin) {
       throw {
          statusCode: 403,
