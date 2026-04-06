@@ -28,12 +28,18 @@ const payViaKhalti = async (data) => {
   const apiKey = (config.khalti.apiKey || "").trim();
   if (!apiKey) throw { statusCode: 500, message: "Khalti API Secret Key is missing. Please check your .env file." };
 
+  // Always use a.khalti.com for Khalti ePayment v2 to prevent Vercel IP geo-blocks from dev.khalti.com
+  let apiUrl = (config.khalti.apiUrl || "https://a.khalti.com/api/v2").trim();
+  if (apiUrl.includes("dev.khalti.com")) {
+      apiUrl = "https://a.khalti.com/api/v2";
+  }
+
   console.log("[Khalti Initiation] Starting request for Order:", data.purchaseOrderName);
-  console.log("DEBUG: Using API URL:", config.khalti.apiUrl, "Key length:", apiKey.length, "Key starts with:", apiKey.substring(0, 5));
+  console.log("DEBUG: Using API URL:", apiUrl, "Key length:", apiKey.length, "Key starts with:", apiKey.substring(0, 5));
   
   try {
     const response = await axios.post(
-      `${config.khalti.apiUrl}/epayment/initiate/`,
+      `${apiUrl}/epayment/initiate/`,
       body,
       {
         headers: {
