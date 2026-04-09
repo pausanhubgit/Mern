@@ -12,11 +12,12 @@ const upload = multer({ storage: multer.memoryStorage() });
 const router = express.Router();
 
 
+router.get('/all', userController.getUser);
 router.get('/', roleBasedAuth(Admin), userController.getUser);
 router.get('/id', roleBasedAuth(Admin), userController.getUserById);
 router.put('/:id', userController.updateUser);
 router.post('/', roleBasedAuth(Admin), userController.createUser);
-router.delete('/:id', roleBasedAuth(Admin), userController.deleteUser);
+router.delete('/:id', auth, userController.deleteUser);
 router.patch('/:id/profile-image', upload.any(), userController.updateProfileImage);
 router.patch('/:id/cover-image', upload.any(), userController.updateCoverImage);
 router.get('/profile/:id', userController.getUserProfile);
@@ -28,6 +29,10 @@ router.put('/:id/roles', auth, roleBasedAuth(Admin), userController.updateUserRo
 router.get('/cart', auth, userController.getCart);
 router.post('/cart', auth, userController.addToCart);
 router.delete('/cart/:artId', auth, userController.removeFromCart);
+
+// Social routes
+router.post('/:id/follow', auth, userController.followUser);
+router.post('/:id/unfollow', auth, userController.unfollowUser);
 
 export default router;
 // export default router;

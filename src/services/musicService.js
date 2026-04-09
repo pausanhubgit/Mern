@@ -5,41 +5,42 @@ import promptGemini from '../utils/gemini.js';
 import { Art_PROMPT } from '../constants/prompt.js';
 import mongoose from 'mongoose';
 import connectToDatabase from '../config/database.js';
+import notificationService from './notificationService.js';
 
-const createMusic = async(data, files, createdBy) => {
+const createMusic = async (data, files, createdBy) => {
    // ensure DB connection
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-    const uploadedResults = await uploadFile(files);
-    
-    // Separate files based on the fieldname provided by the upload utility
-    const audioFiles = uploadedResults.filter(f => f.fieldname === 'media');
-    const imageFiles = uploadedResults.filter(f => f.fieldname === 'image');
+   const uploadedResults = await uploadFile(files);
 
-    const audioUrls = audioFiles.map(f => f.secure_url || f.url);
-    const imageUrls = imageFiles.map(f => f.secure_url || f.url);
+   // Separate files based on the fieldname provided by the upload utility
+   const audioFiles = uploadedResults.filter(f => f.fieldname === 'media');
+   const imageFiles = uploadedResults.filter(f => f.fieldname === 'image');
 
-    // AI Description Generation with safety fallback
-    let description = data.description || "";
-    try {
-        if (!description) {
-            const promptMessage = Art_PROMPT.replace('%s', data.title || 'Unknown').replace('%s', data.artist || 'Unknown').replace('%s', data.category || 'Unknown');
-            const aiDescription = await promptGemini(promptMessage);
-            description = aiDescription || `A beautiful track titled ${data.title}`;
-        }
-    } catch (aiError) {
-        console.error("AI Description generation failed:", aiError);
-        description = data.description || `A music track titled ${data.title}`;
-    }
+   const audioUrls = audioFiles.map(f => f.secure_url || f.url);
+   const imageUrls = imageFiles.map(f => f.secure_url || f.url);
 
-    const createdMusic = await Music.create({
-       ...data,
-       createdBy: createdBy._id,
-       audioUrls,
-       imageUrls,
-       description,
-    });
+   // AI Description Generation with safety fallback
+   let description = data.description || "";
+   try {
+      if (!description) {
+         const promptMessage = Art_PROMPT.replace('%s', data.title || 'Unknown').replace('%s', data.artist || 'Unknown').replace('%s', data.category || 'Unknown');
+         const aiDescription = await promptGemini(promptMessage);
+         description = aiDescription || `A beautiful track titled ${data.title}`;
+      }
+   } catch (aiError) {
+      console.error("AI Description generation failed:", aiError);
+      description = data.description || `A music track titled ${data.title}`;
+   }
+
+   const createdMusic = await Music.create({
+      ...data,
+      createdBy: createdBy._id,
+      audioUrls,
+      imageUrls,
+      description,
+   });
 
    // Increment user's totalMusics
    await UserModel.findByIdAndUpdate(createdBy._id, { $inc: { totalMusics: 1 } });
@@ -47,7 +48,7 @@ const createMusic = async(data, files, createdBy) => {
    return createdMusic;
 };
 
-const getMusics = async(query) => {
+const getMusics = async (query) => {
    // ensure we have a live connection before querying
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
@@ -57,9 +58,9 @@ const getMusics = async(query) => {
    const offset = query.offset || 0;
    let sort = {};
    try {
-       sort = JSON.parse(query.sort || '{}');
+      sort = JSON.parse(query.sort || '{}');
    } catch (e) {
-       sort = {};
+      sort = {};
    }
    const brand = query.brand;
    const category = query.category;
@@ -72,28 +73,28 @@ const getMusics = async(query) => {
 
    const Filter = {};
 
-    if(name){
+   if (name) {
       Filter.title = { $regex: name, $options: 'i' };
    }
    if (min) {
       Filter.price = { $gte: min };
    }
-   if(max){
-   Filter.price = { ...Filter.price, $lte: max };
+   if (max) {
+      Filter.price = { ...Filter.price, $lte: max };
    }
-   if (brand){
+   if (brand) {
       const branditems = brand.split(',');
       Filter.brand = { $in: branditems };
    }
    if (genre) Filter.category = genre; // filter by genre (which is stored as category)
    else if (category) Filter.category = category;
    if (subcategory) Filter.subcategory = subcategory;
-   if(createdBy) Filter.createdBy = createdBy;
+   if (createdBy) Filter.createdBy = createdBy;
    const musics = await Music.find(Filter)
-   .sort(sort)
-   .limit(limit)
-   .skip(offset)
-   .populate('createdBy', 'username name profileImageUrl');
+      .sort(sort)
+      .limit(limit)
+      .skip(offset)
+      .populate('createdBy', 'username name profileImageUrl');
    return musics;
 };
 
@@ -118,7 +119,7 @@ const updateMusic = async (id, data, files, user) => {
       await connectToDatabase();
    }
    const music = await getMusicById(id);
-   
+
    // Robust role normalization
    const userRoles = Array.isArray(user.roles) ? user.roles : (typeof user.roles === 'string' ? [user.roles] : []);
    const upperRoles = userRoles.map(r => String(r).toUpperCase());
@@ -132,7 +133,7 @@ const updateMusic = async (id, data, files, user) => {
    }
 
    const updatedData = data;
-   if (files && files.length>0) {
+   if (files && files.length > 0) {
       const uploadedFiles = await uploadFile(files);
       updatedData.audioUrls = uploadedFiles.map((item) => item?.url);
    }
@@ -148,7 +149,7 @@ const deleteMusic = async (id, user) => {
       await connectToDatabase();
    }
    const music = await getMusicById(id);
-   
+
    // Robust role normalization
    const userRoles = Array.isArray(user.roles) ? user.roles : (typeof user.roles === 'string' ? [user.roles] : []);
    const upperRoles = userRoles.map(r => String(r).toUpperCase());
@@ -170,10 +171,39 @@ const reactToMusic = async (id, user) => {
       await connectToDatabase();
    }
    const music = await getMusicById(id);
-   await Music.findByIdAndUpdate(id, { $inc: { reactions: 1 } });
-   // Increment user's totalReactions
-   await UserModel.findByIdAndUpdate(music.createdBy, { $inc: { totalReactions: 1 } });
-   return { message: "Reaction added" };
+   const userId = user._id.toString();
+   const isLiked = music.likes && music.likes.map(id => id.toString()).includes(userId);
+
+   if (isLiked) {
+      // Unlike logic
+      await Music.findByIdAndUpdate(id, {
+         $pull: { likes: user._id },
+         $inc: { reactions: -1 }
+      });
+      await UserModel.findByIdAndUpdate(music.createdBy, { $inc: { totalReactions: -1 } });
+      return { message: "Reaction removed", liked: false };
+   } else {
+      // Like logic
+      await Music.findByIdAndUpdate(id, {
+         $addToSet: { likes: user._id },
+         $inc: { reactions: 1 }
+      });
+      await UserModel.findByIdAndUpdate(music.createdBy, { $inc: { totalReactions: 1 } });
+
+      // Professional notification for owner
+      if (music.createdBy._id.toString() !== userId) {
+         const senderName = user.name || user.username || "A merchant";
+         await notificationService.createNotification({
+            recipient: music.createdBy._id,
+            sender: user._id,
+            type: "like",
+            title: "Track Reaction",
+            message: `${senderName} has liked your music track "${music.title}"`,
+            link: `/music/detail/${id}`
+         });
+      }
+      return { message: "Reaction added", liked: true };
+   }
 };
 
 const viewMusic = async (id) => {
@@ -188,16 +218,16 @@ const viewMusic = async (id) => {
    return { message: "View counted" };
 };
 
-const countMusics = async(query) => {
+const countMusics = async (query) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
    const Filter = {};
-   if(query.name) Filter.title = { $regex: query.name, $options: 'i' };
-   if(query.createdBy) Filter.createdBy = query.createdBy;
-   if(query.category) Filter.category = query.category;
-   if(query.subcategory) Filter.subcategory = query.subcategory;
-   
+   if (query.name) Filter.title = { $regex: query.name, $options: 'i' };
+   if (query.createdBy) Filter.createdBy = query.createdBy;
+   if (query.category) Filter.category = query.category;
+   if (query.subcategory) Filter.subcategory = query.subcategory;
+
    return await Music.countDocuments(Filter);
 };
 
@@ -210,6 +240,18 @@ const addComment = async (id, userId, username, text) => {
       { $push: { comments: { userId, username, text } } },
       { new: true }
    );
+
+   if (music.createdBy.toString() !== userId.toString()) {
+       await notificationService.createNotification({
+           recipient: music.createdBy,
+           sender: userId,
+           type: "comment",
+           title: "New Track Comment",
+           message: `${username} commented on your track "${music.title}"`,
+           link: `/music/detail/${id}`
+       });
+   }
+
    return music;
 };
 
@@ -235,5 +277,5 @@ const getGenres = async () => {
    return await Music.distinct("category");
 };
 
-export default {getMusics, getMusicById, createMusic, updateMusic, deleteMusic, reactToMusic, viewMusic, countMusics, addComment, deleteComment, getGenres};
-
+export default { getMusics, getMusicById, createMusic, updateMusic, deleteMusic, reactToMusic, viewMusic, countMusics, addComment, deleteComment, getGenres };
+

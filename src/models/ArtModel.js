@@ -9,18 +9,19 @@ const ArtSchema = new mongoose.Schema({
     brand: String,
     stock: Number,
     type: String,
-    
+
     createdAt: { type: Date, default: Date.now() },
-    imageUrls:{
+    imageUrls: {
         type: [String],
     },
-    
-    createdBy : {
-    type: mongoose.Schema.Types.ObjectId,
-    ref:"User",
-    required: [true, "created by user is required"],
+
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: [true, "created by user is required"],
     },
     reactions: { type: Number, default: 0 },
+    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     views: { type: Number, default: 0 },
     comments: [{
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

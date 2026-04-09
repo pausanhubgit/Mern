@@ -5,50 +5,51 @@ import promptGemini from '../utils/gemini.js';
 import { Art_PROMPT } from '../constants/prompt.js';
 import mongoose from 'mongoose';
 import connectToDatabase from '../config/database.js';
+import notificationService from './notificationService.js';
 
-const createVideo = async(data, files, createdBy) => {
+const createVideo = async (data, files, createdBy) => {
    // ensure DB connection
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-    let uploadedResults = [];
-    try {
-        uploadedResults = await uploadFile(files);
-    } catch (uploadError) {
-        // If the error has a statusCode (like our 400 for size limit), propagate it
-        if (uploadError.statusCode) {
-            throw uploadError;
-        }
-        throw uploadError;
-    }
-    
-    // Separate files based on the fieldname provided by the upload utility
-    const videoFiles = uploadedResults.filter(f => f.fieldname === 'media');
-    const imageFiles = uploadedResults.filter(f => f.fieldname === 'image');
+   let uploadedResults = [];
+   try {
+      uploadedResults = await uploadFile(files);
+   } catch (uploadError) {
+      // If the error has a statusCode (like our 400 for size limit), propagate it
+      if (uploadError.statusCode) {
+         throw uploadError;
+      }
+      throw uploadError;
+   }
 
-    const videoUrls = videoFiles.map(f => f.secure_url || f.url);
-    const imageUrls = imageFiles.map(f => f.secure_url || f.url);
+   // Separate files based on the fieldname provided by the upload utility
+   const videoFiles = uploadedResults.filter(f => f.fieldname === 'media');
+   const imageFiles = uploadedResults.filter(f => f.fieldname === 'image');
 
-    // AI Description Generation with safety fallback
-    let description = data.description || "";
-    try {
-        if (!description) {
-            const promptMessage = Art_PROMPT.replace('%s', data.title || 'Unknown').replace('%s', data.artist || 'Unknown').replace('%s', data.category || 'Unknown');
-            const aiDescription = await promptGemini(promptMessage);
-            description = aiDescription || `A video titled ${data.title}`;
-        }
-    } catch (aiError) {
-        console.error("AI Description generation failed:", aiError);
-        description = data.description || `A video titled ${data.title}`;
-    }
+   const videoUrls = videoFiles.map(f => f.secure_url || f.url);
+   const imageUrls = imageFiles.map(f => f.secure_url || f.url);
 
-    const createdVideo = await Video.create({
-       ...data,
-       createdBy: createdBy._id,
-       videoUrls,
-       imageUrls,
-       description,
-    });
+   // AI Description Generation with safety fallback
+   let description = data.description || "";
+   try {
+      if (!description) {
+         const promptMessage = Art_PROMPT.replace('%s', data.title || 'Unknown').replace('%s', data.artist || 'Unknown').replace('%s', data.category || 'Unknown');
+         const aiDescription = await promptGemini(promptMessage);
+         description = aiDescription || `A video titled ${data.title}`;
+      }
+   } catch (aiError) {
+      console.error("AI Description generation failed:", aiError);
+      description = data.description || `A video titled ${data.title}`;
+   }
+
+   const createdVideo = await Video.create({
+      ...data,
+      createdBy: createdBy._id,
+      videoUrls,
+      imageUrls,
+      description,
+   });
 
    // Increment user's totalVideos
    await UserModel.findByIdAndUpdate(createdBy._id, { $inc: { totalVideos: 1 } });
@@ -56,7 +57,7 @@ const createVideo = async(data, files, createdBy) => {
    return createdVideo;
 };
 
-const getVideos = async(query) => {
+const getVideos = async (query) => {
    // ensure we have a live connection before querying
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
@@ -66,9 +67,9 @@ const getVideos = async(query) => {
    const offset = query.offset || 0;
    let sort = {};
    try {
-       sort = JSON.parse(query.sort || '{}');
+      sort = JSON.parse(query.sort || '{}');
    } catch (e) {
-       sort = {};
+      sort = {};
    }
    const brand = query.brand;
    const category = query.category;
@@ -81,28 +82,28 @@ const getVideos = async(query) => {
 
    const Filter = {};
 
-    if(name){
+   if (name) {
       Filter.title = { $regex: name, $options: 'i' };
    }
    if (min) {
       Filter.price = { $gte: min };
    }
-   if(max){
-   Filter.price = { ...Filter.price, $lte: max };
+   if (max) {
+      Filter.price = { ...Filter.price, $lte: max };
    }
-   if (brand){
+   if (brand) {
       const branditems = brand.split(',');
       Filter.brand = { $in: branditems };
    }
    if (genre) Filter.category = genre; // filter by genre (which is stored as category)
    else if (category) Filter.category = category;
    if (subcategory) Filter.subcategory = subcategory;
-   if(createdBy) Filter.createdBy = createdBy;
+   if (createdBy) Filter.createdBy = createdBy;
    const videos = await Video.find(Filter)
-   .sort(sort)
-   .limit(limit)
-   .skip(offset)
-   .populate('createdBy', 'username name profileImageUrl');
+      .sort(sort)
+      .limit(limit)
+      .skip(offset)
+      .populate('createdBy', 'username name profileImageUrl');
    return videos;
 };
 
@@ -127,7 +128,7 @@ const updateVideo = async (id, data, files, user) => {
       await connectToDatabase();
    }
    const video = await getVideoById(id);
-   
+
    // Robust role normalization
    const userRoles = Array.isArray(user.roles) ? user.roles : (typeof user.roles === 'string' ? [user.roles] : []);
    const upperRoles = userRoles.map(r => String(r).toUpperCase());
@@ -141,7 +142,7 @@ const updateVideo = async (id, data, files, user) => {
    }
 
    const updatedData = data;
-   if (files && files.length>0) {
+   if (files && files.length > 0) {
       const uploadedFiles = await uploadFile(files);
       updatedData.videoUrls = uploadedFiles.map((item) => item?.url);
    }
@@ -157,7 +158,7 @@ const deleteVideo = async (id, user) => {
       await connectToDatabase();
    }
    const video = await getVideoById(id);
-   
+
    // Robust role normalization
    const userRoles = Array.isArray(user.roles) ? user.roles : (typeof user.roles === 'string' ? [user.roles] : []);
    const upperRoles = userRoles.map(r => String(r).toUpperCase());
@@ -179,34 +180,63 @@ const reactToVideo = async (id, user) => {
       await connectToDatabase();
    }
    const video = await getVideoById(id);
-   await Video.findByIdAndUpdate(id, { $inc: { reactions: 1 } });
-   // Increment user's totalReactions
-   await UserModel.findByIdAndUpdate(video.createdBy, { $inc: { totalReactions: 1 } });
-   return { message: "Reaction added" };
+   const userId = user._id.toString();
+   const isLiked = video.likes && video.likes.map(id => id.toString()).includes(userId);
+
+   if (isLiked) {
+      // Unlike logic
+      await Video.findByIdAndUpdate(id, {
+         $pull: { likes: user._id },
+         $inc: { reactions: -1 }
+      });
+      await UserModel.findByIdAndUpdate(video.createdBy, { $inc: { totalReactions: -1 } });
+      return { message: "Reaction removed", liked: false };
+   } else {
+      // Like logic
+      await Video.findByIdAndUpdate(id, {
+         $addToSet: { likes: user._id },
+         $inc: { reactions: 1 }
+      });
+      await UserModel.findByIdAndUpdate(video.createdBy, { $inc: { totalReactions: 1 } });
+
+      // Professional notification for owner
+      if (video.createdBy._id.toString() !== userId) {
+         const senderName = user.name || user.username || "A merchant";
+         await notificationService.createNotification({
+            recipient: video.createdBy._id,
+            sender: user._id,
+            type: "like",
+            title: "Video Reaction",
+            message: `${senderName} has liked your video "${video.title}"`,
+            link: `/video/detail/${id}`
+         });
+      }
+      return { message: "Reaction added", liked: true };
+   }
 };
 
 const viewVideo = async (id) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-    await Video.findByIdAndUpdate(id, { $inc: { views: 1 } });
+   await Video.findByIdAndUpdate(id, { $inc: { views: 1 } });
 
-    // 40% of $0.10 view revenue to Admin
-    await UserModel.findOneAndUpdate({ roles: "Admin" }, { $inc: { revenue: 0.04 } });
+   // 40% of $0.10 view revenue to Admin
+   await UserModel.findOneAndUpdate({ roles: "Admin" }, { $inc: { revenue: 0.04 } });
 
-    return { message: "View counted" };
+   return { message: "View counted" };
 };
 
-const countVideos = async(query) => {
+const countVideos = async (query) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
    const Filter = {};
-   if(query.name) Filter.title = { $regex: query.name, $options: 'i' };
-   if(query.createdBy) Filter.createdBy = query.createdBy;
-   if(query.category) Filter.category = query.category;
-   if(query.subcategory) Filter.subcategory = query.subcategory;
-   
+   if (query.name) Filter.title = { $regex: query.name, $options: 'i' };
+   if (query.createdBy) Filter.createdBy = query.createdBy;
+   if (query.category) Filter.category = query.category;
+   if (query.subcategory) Filter.subcategory = query.subcategory;
+
    return await Video.countDocuments(Filter);
 };
 
@@ -219,6 +249,18 @@ const addComment = async (id, userId, username, text) => {
       { $push: { comments: { userId, username, text } } },
       { new: true }
    );
+
+   if (video.createdBy.toString() !== userId.toString()) {
+       await notificationService.createNotification({
+           recipient: video.createdBy,
+           sender: userId,
+           type: "comment",
+           title: "New Video Comment",
+           message: `${username} commented on your video "${video.title}"`,
+           link: `/video/detail/${id}`
+       });
+   }
+
    return video;
 };
 
@@ -244,5 +286,5 @@ const getGenres = async () => {
    return await Video.distinct("category");
 };
 
-export default {getVideos, getVideoById, createVideo, updateVideo, deleteVideo, reactToVideo, viewVideo, countVideos, addComment, deleteComment, getGenres};
-
+export default { getVideos, getVideoById, createVideo, updateVideo, deleteVideo, reactToVideo, viewVideo, countVideos, addComment, deleteComment, getGenres };
+

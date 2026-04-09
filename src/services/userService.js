@@ -7,69 +7,87 @@ import Art from '../models/ArtModel.js';
 import Music from '../models/MusicModel.js';
 import Video from '../models/VideoModel.js';
 import Event from '../models/EventModel.js';
+import notificationService from './notificationService.js';
 
-const getUser = async()=>{
-   if (mongoose.connection.readyState !== 1) {
-      await connectToDatabase();
-   }
-   const users = await UserModel.find();
-   return users;
+const getUser = async () => {
+    if (mongoose.connection.readyState !== 1) {
+        await connectToDatabase();
+    }
+    const users = await UserModel.find();
+    return users;
 };
 
 
-const getUserById = async(id)=>{
+const getUserById = async (id) => {
     if (mongoose.connection.readyState !== 1) {
-      await connectToDatabase();
+        await connectToDatabase();
     }
     const user = await UserModel.findById(id);
-    if(!user) throw { statusCode: 404, message: "User not found" };
+    if (!user) throw { statusCode: 404, message: "User not found" };
     return user;
 };
 
-const createUser = async(data)=>await UserModel.create(data);
+const createUser = async (data) => await UserModel.create(data);
 
-const updateUser = async(id, data, authUser)=>{
+const updateUser = async (id, data, authUser) => {
     const user = await getUserById(id);
 
-  if (user._id.toString() !== authUser._id && !authUser.roles.includes(Admin)) {
-    throw {
-      statusCode: 403,
-      message: "Access denied.",
-    };
-  }
- const updatedUser = await UserModel.findByIdAndUpdate(
-    id,
-    {
-        username: data.name || data.username || user.username,
-        email: data.email || user.email,
-        bio: data.bio || user.bio,
-        city: data.city || data.address?.city || user.city,
-    },
-    {new:true}
- );
+    if (user._id.toString() !== authUser._id && !authUser.roles.includes(Admin)) {
+        throw {
+            statusCode: 403,
+            message: "Access denied.",
+        };
+    }
+    const updatedUser = await UserModel.findByIdAndUpdate(
+        id,
+        {
+            username: data.username || user.username,
+            name: data.name || user.name || "",
+            email: data.email || user.email,
+            bio: data.bio || user.bio,
+            city: data.city || data.address?.city || user.city,
+        },
+        { new: true }
+    );
 
- return updatedUser;
+    return updatedUser;
 };
 
-const createMerchant = async(UserId)=>{
+const createMerchant = async (UserId) => {
 
-  const updateUser = await UserModel.findByIdAndUpdate(
-    UserId,
-    {
-        roles: [User,Merchant],
-    },
-    {new:true}
-  );
-  return updateUser ? updateUser.toObject() : null;
+    const updateUser = await UserModel.findByIdAndUpdate(
+        UserId,
+        {
+            roles: [User, Merchant],
+        },
+        { new: true }
+    );
+    return updateUser ? updateUser.toObject() : null;
 
 }
-const deleteUser = async(id)=>{
+const deleteUser = async (id, authUser) => {
     const user = await getUserById(id);
+
+    // Permission check: User can only delete themselves unless they are an Admin
+    if (user._id.toString() !== authUser._id.toString() && !authUser.roles.map(r => r.toLowerCase()).includes(Admin.toLowerCase())) {
+        throw { statusCode: 403, message: "Access denied. You can only delete your own account." };
+    }
+
+    // Delete associated content
+    await Promise.all([
+        Art.deleteMany({ createdBy: id }),
+        Music.deleteMany({ createdBy: id }),
+        Video.deleteMany({ createdBy: id }),
+        Event.deleteMany({ creatorUserId: id }),
+        // Optional: Remove user from other users' followers/following lists
+        UserModel.updateMany({}, { $pull: { followers: id, following: id } })
+    ]);
+
     return await UserModel.findByIdAndDelete(id);
 }
 
 
-const updateUserProfileImage = async(id, file, authUser)=>{
+const updateUserProfileImage = async (id, file, authUser) => {
     const user = await getUserById(id);
     if (user._id.toString() !== authUser._id && !authUser.roles.includes(Admin)) {
         throw { statusCode: 403, message: "Access denied." };
@@ -79,11 +97,11 @@ const updateUserProfileImage = async(id, file, authUser)=>{
     }
     const results = await uploadFile([file]);
     const imageUrl = results[0]?.url || "";
-    const updatedUser = await UserModel.findByIdAndUpdate(id, {profileImageUrl: imageUrl}, {new:true});
+    const updatedUser = await UserModel.findByIdAndUpdate(id, { profileImageUrl: imageUrl }, { new: true });
     return updatedUser;
 }
 
-const updateUserCoverImage = async(id, file, authUser)=>{
+const updateUserCoverImage = async (id, file, authUser) => {
     const user = await getUserById(id);
     if (user._id.toString() !== authUser._id && !authUser.roles.includes(Admin)) {
         throw { statusCode: 403, message: "Access denied." };
@@ -93,7 +111,7 @@ const updateUserCoverImage = async(id, file, authUser)=>{
     }
     const results = await uploadFile([file]);
     const imageUrl = results[0]?.url || "";
-    const updatedUser = await UserModel.findByIdAndUpdate(id, {coverImageUrl: imageUrl}, {new:true});
+    const updatedUser = await UserModel.findByIdAndUpdate(id, { coverImageUrl: imageUrl }, { new: true });
     return updatedUser;
 }
 
@@ -121,7 +139,7 @@ const getSystemStats = async () => {
 
     return {
         totalUsers: Math.max(0, totalUsers),
-        totalArts:  Math.max(0, totalArts),
+        totalArts: Math.max(0, totalArts),
         totalMusics: Math.max(0, totalMusics),
         totalVideos: Math.max(0, totalVideos),
         totalEvents: Math.max(0, totalEvents),
@@ -152,7 +170,7 @@ const getContentGrowth = async () => {
     return growthData;
 };
 
-const getUserDashboard = async(id, authUser)=>{
+const getUserDashboard = async (id, authUser) => {
     const user = await getUserById(id);
     if (user._id.toString() !== authUser._id && !authUser.roles.includes(Admin)) {
         throw { statusCode: 403, message: "Access denied." };
@@ -176,7 +194,7 @@ const getUserDashboard = async(id, authUser)=>{
     if (user.totalArts > 0) badges.push("Artist");
     if (user.totalMusics > 0) badges.push("Musician");
     if (user.totalVideos > 0) badges.push("Videographer");
-    
+
     // Tiered Engagement Badges
     if (user.totalReactions > 10) badges.push("Bronze Creator");
     if (user.totalReactions > 20) badges.push("Silver Creator");
@@ -242,7 +260,9 @@ const getUserProfile = async (id) => {
     if (mongoose.connection.readyState !== 1) {
         await connectToDatabase();
     }
-    const user = await UserModel.findById(id).select('-password -cart');
+    const user = await UserModel.findById(id).select('-password -cart')
+        .populate('followers', 'username name profileImageUrl')
+        .populate('following', 'username name profileImageUrl');
     if (!user) throw { statusCode: 404, message: "User not found" };
 
     const [arts, musics, videos, events] = await Promise.all([
@@ -276,7 +296,7 @@ const updateUserRole = async (id, roles) => {
     // Validate roles
     const validRoles = [User, Admin, Merchant];
     const filteredRoles = rolesArray.filter(role => validRoles.includes(role));
-    
+
     if (filteredRoles.length === 0) {
         throw { statusCode: 400, message: "At least one valid role is required" };
     }
@@ -286,5 +306,71 @@ const updateUserRole = async (id, roles) => {
     return user;
 };
 
-export default {getUserById, deleteUser,getUser,createUser, updateUser, createMerchant, updateUserProfileImage, updateUserCoverImage, getUserDashboard, addToCart, removeFromCart, getCart, getUserProfile, updateUserRole};
+const followUser = async (targetId, currentUserId) => {
+    if (mongoose.connection.readyState !== 1) await connectToDatabase();
+    
+    // Robust ID comparison using strings
+    const targetIdStr = String(targetId || "");
+    const currentUserIdStr = String(currentUserId || "");
+
+    if (!targetIdStr || !currentUserIdStr) {
+        throw { statusCode: 400, message: "Valid target and sender IDs are required" };
+    }
+
+    if (targetIdStr === currentUserIdStr) {
+        throw { statusCode: 400, message: "You cannot follow yourself" };
+    }
+
+    const targetUser = await UserModel.findById(targetId);
+    const currentUser = await UserModel.findById(currentUserId);
+
+    if (!targetUser || !currentUser) throw { statusCode: 404, message: "User not found" };
+
+    // Avoid duplicates
+    if (targetUser.followers.some(id => id.toString() === currentUserIdStr)) {
+        return { message: "Already following this user" };
+    }
+
+    // Check if this is a mutual follow (Follow Back)
+    // We check if the targetUser (A) already includes the currentUser (B) in their following list
+    const targetFollowing = targetUser.following || [];
+    const isFollowBack = targetFollowing.some(id => String(id) === currentUserIdStr);
+    
+    const followerName = currentUser.name || currentUser.username || "A merchant";
+    const notifTitle = isFollowBack ? "New Follow Back" : "New Follower";
+    const notifMessage = isFollowBack 
+        ? `${followerName} followed you back` 
+        : `${followerName} started following you`;
+
+    console.log(`[SOCIAL DEBUG] isFollowBack: ${isFollowBack}, TargetID: ${targetId}, CurrentID: ${currentUserId}`);
+
+    await Promise.all([
+        UserModel.findByIdAndUpdate(targetId, { $push: { followers: currentUserId } }),
+        UserModel.findByIdAndUpdate(currentUserId, { $push: { following: targetId } }),
+        notificationService.createNotification({
+            recipient: targetId,
+            sender: currentUserId,
+            type: isFollowBack ? "follow_back" : "follow",
+            title: notifTitle,
+            message: notifMessage,
+            link: `/profile/${currentUserId}`
+        })
+    ]);
+    console.log(`[BACKEND SOCIAL] Notification (${isFollowBack ? 'FOLLOW_BACK' : 'FOLLOW'}) sent to ${targetId} from ${currentUserId}`);
+
+    return { success: true, message: "Followed successfully" };
+};
+
+const unfollowUser = async (targetId, currentUserId) => {
+    if (mongoose.connection.readyState !== 1) await connectToDatabase();
+
+    await Promise.all([
+        UserModel.findByIdAndUpdate(targetId, { $pull: { followers: currentUserId } }),
+        UserModel.findByIdAndUpdate(currentUserId, { $pull: { following: targetId } })
+    ]);
+
+    return { success: true, message: "Unfollowed successfully" };
+};
+
+export default { getUserById, deleteUser, getUser, createUser, updateUser, createMerchant, updateUserProfileImage, updateUserCoverImage, getUserDashboard, addToCart, removeFromCart, getCart, getUserProfile, updateUserRole, followUser, unfollowUser };
 

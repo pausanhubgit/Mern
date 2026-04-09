@@ -85,7 +85,7 @@ const createMerchant = async (req, res) => {
 const deleteUser = async (req, res) => {
     try {
         const id = req.params.id;
-        const deletedUser = await userService.deleteUser(id);
+        const deletedUser = await userService.deleteUser(id, req.user);
         if (!deletedUser) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -95,7 +95,7 @@ const deleteUser = async (req, res) => {
         });
     } catch (error) {
         console.error("Error deleting user:", error);
-        res.status(500).json({
+        res.status(error.statusCode || 500).json({
             message: "Failed to delete user",
             error: error.message
         });
@@ -201,6 +201,28 @@ const updateUserRole = async (req, res) => {
     }
 };
 
-export default { createUser, getUserById, getUser, updateUser, createMerchant, deleteUser, updateProfileImage, updateCoverImage, getUserDashboard, getCart, addToCart, removeFromCart, getUserProfile, updateUserRole };
+const followUser = async (req, res) => {
+    try {
+        const targetId = req.params.id;
+        const currentUserId = req.user._id;
+        const result = await userService.followUser(targetId, currentUserId);
+        res.json(result);
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ error: error.message });
+    }
+};
+
+const unfollowUser = async (req, res) => {
+    try {
+        const targetId = req.params.id;
+        const currentUserId = req.user._id;
+        const result = await userService.unfollowUser(targetId, currentUserId);
+        res.json(result);
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ error: error.message });
+    }
+};
+
+export default { createUser, getUserById, getUser, updateUser, createMerchant, deleteUser, updateProfileImage, updateCoverImage, getUserDashboard, getCart, addToCart, removeFromCart, getUserProfile, updateUserRole, followUser, unfollowUser };
 
 // export default {createUser, getUserById};

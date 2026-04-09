@@ -5,28 +5,29 @@ import promptGemini from '../utils/gemini.js';
 import { Art_PROMPT } from '../constants/prompt.js';
 import mongoose from 'mongoose';
 import connectToDatabase from '../config/database.js';
+import notificationService from './notificationService.js';
 
-const createArt = async(data, files, createdBy) => {
+const createArt = async (data, files, createdBy) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
    const uploadedResults = await uploadFile(files);
-   
+
    // AI Description Generation with safety fallback
-    let description = data.description || "";
-    try {
-        if (!description) {
-            const promptMessage = Art_PROMPT.replace('%s', data.title || 'Unknown').replace('%s', data.artist || 'Unknown').replace('%s', data.category || 'Unknown');
-            const aiDescription = await promptGemini(promptMessage);
-            description = aiDescription || `A beautiful artwork titled ${data.title}`;
-        }
-    } catch (aiError) {
-        console.error("AI Description generation failed:", aiError);
-        description = data.description || `A collection of visual art titled ${data.title}`;
-    }
-    
-    if (data.stock) data.stock = Number(data.stock);
-    if (data.price) data.price = Number(data.price);
+   let description = data.description || "";
+   try {
+      if (!description) {
+         const promptMessage = Art_PROMPT.replace('%s', data.title || 'Unknown').replace('%s', data.artist || 'Unknown').replace('%s', data.category || 'Unknown');
+         const aiDescription = await promptGemini(promptMessage);
+         description = aiDescription || `A beautiful artwork titled ${data.title}`;
+      }
+   } catch (aiError) {
+      console.error("AI Description generation failed:", aiError);
+      description = data.description || `A collection of visual art titled ${data.title}`;
+   }
+
+   if (data.stock) data.stock = Number(data.stock);
+   if (data.price) data.price = Number(data.price);
 
    const createdArt = await Art.create({
       ...data,
@@ -40,7 +41,7 @@ const createArt = async(data, files, createdBy) => {
    return createdArt;
 };
 
-const getarts = async(query) => {
+const getarts = async (query) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
@@ -49,9 +50,9 @@ const getarts = async(query) => {
    const offset = query.offset || 0;
    let sort = {};
    try {
-       sort = JSON.parse(query.sort || '{}');
+      sort = JSON.parse(query.sort || '{}');
    } catch (e) {
-       sort = {};
+      sort = {};
    }
    const brand = query.brand;
    const category = query.category;
@@ -62,26 +63,26 @@ const getarts = async(query) => {
 
    const Filter = {};
 
-   if(name){
+   if (name) {
       Filter.title = { $regex: name, $options: 'i' };
    }
    if (min) {
       Filter.price = { $gte: min };
    }
-   if(max){
+   if (max) {
       Filter.price = { ...Filter.price, $lte: max };
    }
-   if (brand){
+   if (brand) {
       const branditems = brand.split(',');
       Filter.brand = { $in: branditems };
    }
    if (category) Filter.category = category;
-   if(createdBy) Filter.createdBy = createdBy;
+   if (createdBy) Filter.createdBy = createdBy;
    const arts = await Art.find(Filter)
-   .sort(sort)
-   .limit(limit)
-   .skip(offset)
-   .populate('createdBy', 'username name profileImageUrl');
+      .sort(sort)
+      .limit(limit)
+      .skip(offset)
+      .populate('createdBy', 'username name profileImageUrl');
    return arts;
 };
 
@@ -118,11 +119,11 @@ const updateArt = async (id, data, files, user) => {
       };
    }
 
-    if (data.stock) data.stock = Number(data.stock);
-    if (data.price) data.price = Number(data.price);
+   if (data.stock) data.stock = Number(data.stock);
+   if (data.price) data.price = Number(data.price);
 
-    const updatedData = data;
-   if (files && files.length>0) {
+   const updatedData = data;
+   if (files && files.length > 0) {
       const uploadedFiles = await uploadFile(files);
       updatedData.imageUrls = uploadedFiles.map((item) => item?.url);
    }
@@ -158,32 +159,62 @@ const reactToArt = async (id, user) => {
       await connectToDatabase();
    }
    const art = await getArtById(id);
-   await Art.findByIdAndUpdate(id, { $inc: { reactions: 1 } });
-   await UserModel.findByIdAndUpdate(art.createdBy, { $inc: { totalReactions: 1 } });
-   return { message: "Reaction added" };
+   const userId = user._id.toString();
+   const isLiked = art.likes && art.likes.map(id => id.toString()).includes(userId);
+
+   if (isLiked) {
+      // Unlike logic
+      await Art.findByIdAndUpdate(id, {
+         $pull: { likes: user._id },
+         $inc: { reactions: -1 }
+      });
+      await UserModel.findByIdAndUpdate(art.createdBy, { $inc: { totalReactions: -1 } });
+      return { message: "Reaction removed", liked: false };
+   } else {
+      // Like logic
+      await Art.findByIdAndUpdate(id, {
+         $addToSet: { likes: user._id },
+         $inc: { reactions: 1 }
+      });
+      await UserModel.findByIdAndUpdate(art.createdBy, { $inc: { totalReactions: 1 } });
+
+      // Professional notification for owner
+      if (art.createdBy._id.toString() !== userId) {
+         const senderName = user.name || user.username || "A merchant";
+         await notificationService.createNotification({
+            recipient: art.createdBy._id,
+            sender: user._id,
+            type: "like",
+            title: "Artwork Reaction",
+            message: `${senderName} has liked your design arts "${art.title}"`,
+            link: `/arts/${id}`
+         });
+      }
+      return { message: "Reaction added", liked: true };
+   }
 };
 
 const viewArt = async (id) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
-    await Art.findByIdAndUpdate(id, { $inc: { views: 1 } });
-    
-    // 40% of $0.10 view revenue to Admin
-    await UserModel.findOneAndUpdate({ roles: "Admin" }, { $inc: { revenue: 0.04 } });
-    
-    return { message: "View counted" };
+   await Art.findByIdAndUpdate(id, { $inc: { views: 1 } });
+
+   // 40% of $0.10 view revenue to Admin
+   await UserModel.findOneAndUpdate({ roles: "Admin" }, { $inc: { revenue: 0.04 } });
+
+   return { message: "View counted" };
 };
 
-const countarts = async(query) => {
+const countarts = async (query) => {
    if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
    }
    const Filter = {};
-   if(query.name) Filter.title = { $regex: query.name, $options: 'i' };
-   if(query.createdBy) Filter.createdBy = query.createdBy;
-   if(query.category) Filter.category = query.category;
-   
+   if (query.name) Filter.title = { $regex: query.name, $options: 'i' };
+   if (query.createdBy) Filter.createdBy = query.createdBy;
+   if (query.category) Filter.category = query.category;
+
    return await Art.countDocuments(Filter);
 };
 
@@ -196,6 +227,18 @@ const addComment = async (id, userId, username, text) => {
       { $push: { comments: { userId, username, text } } },
       { new: true }
    );
+
+   if (art.createdBy.toString() !== userId.toString()) {
+      await notificationService.createNotification({
+         recipient: art.createdBy,
+         sender: userId,
+         type: "comment",
+         title: "New Comment Received",
+         message: `${username} commented on your artwork "${art.title}"`,
+         link: `/arts/${id}`
+      });
+   }
+
    return art;
 };
 
@@ -228,4 +271,4 @@ const getBrands = async () => {
    return await Art.distinct("brand");
 };
 
-export default {getarts,getArtById,createArt,updateArt,deleteArt, reactToArt, viewArt, countarts, addComment, deleteComment, getCategories, getBrands};
+export default { getarts, getArtById, createArt, updateArt, deleteArt, reactToArt, viewArt, countarts, addComment, deleteComment, getCategories, getBrands };

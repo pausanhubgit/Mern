@@ -3,6 +3,7 @@ import { Admin, Merchant,User } from "../constants/roles.js";
 
 const UserSchema = new mongoose.Schema({
     username: { type: String,required: true},
+    name: { type: String, default: "" },
     email: { type: String, required: false, lowercase: true, unique: true, sparse: true, validate: {
         validator: function(value) {
             if (!value) return true; // Allow null/empty for phone-only users
@@ -45,6 +46,8 @@ const UserSchema = new mongoose.Schema({
     totalReactions: { type: Number, default: 0 },
     coverImageUrl: { type: String, default: "" },
     revenue: { type: Number, default: 0 },
+    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     cart: [
         {
             artId: { type: mongoose.Schema.Types.ObjectId, ref: "Art" },

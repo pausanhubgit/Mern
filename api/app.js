@@ -14,15 +14,17 @@ import orderRoute from '../src/routes/orderRoute.js';
 import eventRoute from '../src/routes/eventRoute.js';
 import contactRoute from '../src/routes/contactRoute.js';
 import subscriberRoute from '../src/routes/subscriberRoute.js';
+import notificationRoute from '../src/routes/notificationRoute.js';
 import multer from 'multer';
 import { connectCloudinary } from '../src/config/cloudinary.js';
 import { version } from 'mongoose';
 import cors from 'cors';
+import userController from '../src/controller/userController.js';
 
 // log any unhandled errors so Vercel shows stack traces
 const app = express();
 
-const upload = multer({storage: multer.memoryStorage()});
+const upload = multer({ storage: multer.memoryStorage() });
 connectToDatabase().catch(err => console.error('DB connection error:', err));
 connectCloudinary().catch(err => console.error('Cloudinary error:', err));
 app.use(cors({
@@ -56,6 +58,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/auths', authRoute);
+app.get('/api/users/all', userController.getUser); // Public search/discovery endpoint
 app.use('/api/users', auth, userRoute);
 app.use('/api/arts', artRoute);
 app.use('/api/musics', musicRoute);
@@ -64,6 +67,7 @@ app.use('/api/orders', auth, orderRoute);
 app.use('/api/events', eventRoute);
 app.use('/api/contacts', contactRoute);
 app.use('/api/subscribers', subscriberRoute);
+app.use('/api/notifications', notificationRoute);
 
 // Global error handler (must be last)
 app.use((err, req, res, next) => {
