@@ -68,6 +68,7 @@ try{
 };
 const forgetPassword = async (req, res) => {
     const { identifier, method, redirectUrl } = req.body;
+    console.log('[FORGET PASSWORD] req.body:', req.body);
 
     try {
         if (!identifier || !method) {

@@ -53,6 +53,7 @@ const register = async(data) =>{
     }
 
     const hashedPassword = bcrypt.hashSync(data.password);
+    console.log('[REGISTER] Creating user:', data.email);
    
    const registerUser = await User.create({
         username: data.username,
@@ -75,13 +76,15 @@ const login = async(data) =>{
    if (mongoose.connection.readyState !== 1) {
         await connectToDatabase();
     }
-   const user = await User.findOne({email: data.email});
+    const user = await User.findOne({email: data.email});
+    console.log('[LOGIN] User found:', user ? 'Yes' : 'No', 'Email:', data.email);
     if(!user){
         throw new Error("User not found");
     }
     const isMatch = bcrypt.compareSync(data.password, user.password);
+    console.log('[LOGIN] Password match:', isMatch);
     if(!isMatch){
-        throw new Error("Invalid  email or password");
+        throw new Error("Invalid email or password");
     }
     return {
         _id: user._id,
