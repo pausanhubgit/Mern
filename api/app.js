@@ -71,7 +71,19 @@ app.use('/api/notifications', notificationRoute);
 
 // Global error handler (must be last)
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('Error:', err.message);
+
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    // If the JSON is malformed on auth endpoints, forcefully return the requested message
+    if (req.path === '/api/auths/register' || req.path === '/api/auths/login') {
+      return res.status(400).json({
+        message: "please use google verified gmail",
+        status: "error"
+      });
+    }
+    return res.status(400).json({ message: "Invalid JSON format in request body", status: "error" });
+  }
+
   res.status(err.statusCode || err.status || 500).json({
     message: err.message || 'Internal Server Error',
     status: 'error'

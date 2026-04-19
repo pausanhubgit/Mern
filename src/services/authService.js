@@ -13,6 +13,7 @@ import { Merchant } from '../constants/roles.js';
 const client = new OAuth2Client(mainConfig.googleClientId);
 
 const isGoogleEmail = (email) => {
+    if (!email || typeof email !== 'string') return false;
     const googleDomains = ['gmail.com', 'googlemail.com'];
     const domain = email.split('@')[1];
     return googleDomains.includes(domain);
@@ -20,7 +21,7 @@ const isGoogleEmail = (email) => {
 
 const register = async(data) =>{
     if (!isGoogleEmail(data.email)) {
-        throw new Error("Only Google emails are allowed for registration");
+        throw new Error("please use google verified gmail");
     }
     if (mongoose.connection.readyState !== 1) {
         await connectToDatabase();
@@ -71,7 +72,7 @@ const register = async(data) =>{
 
 const login = async(data) =>{
     if (!isGoogleEmail(data.email)) {
-        throw new Error("Only Google emails are allowed for login");
+        throw new Error("please use google verified gmail");
     }
    if (mongoose.connection.readyState !== 1) {
         await connectToDatabase();
